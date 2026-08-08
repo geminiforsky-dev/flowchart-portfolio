@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowMatch - เกมสัญลักษณ์ผังงานแสนสนุก</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+        .cyber-grid {
+            background-image: radial-gradient(rgba(99, 102, 241, 0.15) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .glow-cyan:hover {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        /* Custom animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col cyber-grid relative overflow-x-hidden">
+
+    
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="changeScreen('menu')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500">
+                        FLOWMATCH
+                    </h1>
+                    <p class="text-[10px] text-slate-400 tracking-wider uppercase font-semibold">Interactive Educational Game</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden sm:flex items-center gap-6 bg-slate-900/90 px-4 py-1.5 rounded-full border border-slate-800 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400">🏆</span>
+                        <span id="header-score">คะแนน: 0</span>
+                    </div>
+                    <div class="flex items-center gap-2 border-l border-slate-800 pl-4">
+                        <span class="text-red-400">❤️</span>
+                        <span id="header-lives">พลังชีวิต: 3</span>
+                    </div>
+                </div>
+
+                <button id="sound-btn" onclick="toggleMute()" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-all border border-slate-700 text-xl" title="เปิด/ปิดเสียง">
+                    🔊
+                </button>
+                <button onclick="openHelpModal()" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-all border border-slate-700 text-xl" title="วิธีเล่น">
+                    ❓
+                </button>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 flex flex-col justify-start relative z-10">
+
+        <section id="screen-menu" class="flex flex-col items-center justify-center py-6 sm:py-12 space-y-8 animate-float">
+            <div class="text-center max-w-2xl px-2">
+                <span class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                    เรียนรู้ พัฒนา ฝึกสมองคอมพิวเตอร์
+                </span>
+                <h2 class="text-4xl sm:text-5xl font-extrabold mt-4 text-white leading-tight">
+                    ไขปริศนาสัญลักษณ์ <br/>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-emerald-400">Flowchart (ผังงาน)</span>
+                </h2>
+                <p class="text-slate-400 mt-4 text-sm sm:text-base leading-relaxed">
+                    ยกระดับทักษะการคิดเชิงตรรกะและวิทยาการคำนวณผ่านเกมจับคู่และภารกิจการแก้ปัญหาผังงานเชิงลึก พร้อมเสียงประกอบและเอฟเฟกต์สุดล้ำ!
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mt-4">
+                <div onclick="changeScreen('study')" class="group relative rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/50 p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10">
+                    <div class="absolute -top-3 left-6 px-3 py-1 rounded-full bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider">โหมดที่ 1</div>
+                    <div class="mt-2">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                            📚
+                        </div>
+                        <h3 class="text-xl font-bold mt-4 text-slate-100 group-hover:text-indigo-400 transition-colors">ห้องสมุดผังงาน</h3>
+                        <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                            เรียนรู้สัญลักษณ์ผังงานมาตรฐานทั้ง 10 แบบพร้อมตัวอย่างการใช้งานจริงเพื่อเตรียมความพร้อมก่อนลุยสนามจริง!
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center text-sm font-semibold text-indigo-400 group-hover:translate-x-1 transition-transform">
+                        เข้าสู่ห้องเรียน &rarr;
+                    </div>
+                </div>
+
+                <div onclick="changeScreen('match')" class="group relative rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-cyan-500/50 p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-cyan-500/10">
+                    <div class="absolute -top-3 left-6 px-3 py-1 rounded-full bg-cyan-500 text-white text-[10px] font-bold uppercase tracking-wider">โหมดที่ 2</div>
+                    <div class="mt-2">
+                        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                            ⚡
+                        </div>
+                        <h3 class="text-xl font-bold mt-4 text-slate-100 group-hover:text-cyan-400 transition-colors">เกมจับคู่จับเวลา</h3>
+                        <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                            เกมจับคู่สัญลักษณ์และความหมายแข่งกับเวลา สะสมคะแนน ทำคอมโบ และรักษาพลังชีวิตให้อยู่รอดพ้นระดับอันตราย!
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center text-sm font-semibold text-cyan-400 group-hover:translate-x-1 transition-transform">
+                        เริ่มเล่นเกม &rarr;
+                    </div>
+                </div>
+
+                <div onclick="changeScreen('puzzle')" class="group relative rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-emerald-500/50 p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-emerald-500/10">
+                    <div class="absolute -top-3 left-6 px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider">โหมดที่ 3</div>
+                    <div class="mt-2">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                            🧩
+                        </div>
+                        <h3 class="text-xl font-bold mt-4 text-slate-100 group-hover:text-emerald-400 transition-colors">ภารกิจต่อวงจรลอจิก</h3>
+                        <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                            สวมบทบาทเป็นโปรแกรมเมอร์เรียงลำดับบล็อกสัญลักษณ์ให้กลายเป็น Flowchart การประมวลผลอัลกอริทึมที่ถูกต้องและทำงานได้จริง
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center text-sm font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">
+                        ทำภารกิจ &rarr;
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-lg bg-slate-900/40 rounded-xl p-4 border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
+                <div class="flex items-center gap-2">
+                    <span>👑 สถิติคะแนนสูงสุดของคุณ: </span>
+                    <strong id="high-score-val" class="text-yellow-400">0 คะแนน</strong>
+                </div>
+                <button onclick="resetHighScore()" class="text-red-400 hover:text-red-300 font-semibold underline">รีเซ็ตสถิติ</button>
+            </div>
+        </section>
+
+        <section id="screen-study" class="hidden space-y-6">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 hover:text-white font-medium transition-colors bg-slate-800/60 hover:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700">
+                    &larr; ย้อนกลับไปเมนูหลัก
+                </button>
+                <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                    📚 ห้องสมุดเรียนรู้สัญลักษณ์ผังงาน
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="study-list-container">
+                </div>
+        </section>
+
+
+        <section id="screen-match" class="hidden space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+                <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 hover:text-white font-medium transition-colors bg-slate-850 px-3 py-1.5 rounded-lg text-sm">
+                    &larr; ออกจากเกม
+                </button>
+
+                <div class="flex items-center gap-4 text-xs sm:text-sm">
+                    <div class="bg-indigo-950/40 border border-indigo-500/20 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span class="animate-pulse">⏳</span>
+                        <span id="match-timer">เวลาเหลือ: 45 วินาที</span>
+                    </div>
+                    <div class="bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span>🔥</span>
+                        <span id="match-combo">คอมโบ: X1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="text-sm font-semibold text-slate-400 flex items-center justify-between">
+                        <span>(1) เลือกสัญลักษณ์ที่นี่ 🌟</span>
+                        <span class="text-xs text-indigo-400">สัมผัสหรือคลิก</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4" id="match-symbols-container">
+                        </div>
+                </div>
+
+                <div class="lg:col-span-2 flex items-center justify-center flex-col text-slate-600 font-bold text-lg pointer-events-none gap-2">
+                    <span class="hidden lg:block text-2xl animate-pulse text-indigo-500/60">&#10142;</span>
+                    <span class="hidden lg:block text-xs uppercase text-slate-500">จับคู่ความหมาย</span>
+                </div>
+
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="text-sm font-semibold text-slate-400 flex items-center justify-between">
+                        <span>(2) จับคู่กับความหมายที่ถูกต้องที่นี่ 🎯</span>
+                        <span class="text-xs text-cyan-400">สัมผัสคำตอบเพื่อเชื่อม</span>
+                    </div>
+                    <div class="space-y-4" id="match-meanings-container">
+                        </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="screen-puzzle" class="hidden space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 hover:text-white font-medium transition-colors bg-slate-800/60 hover:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700">
+                    &larr; ออกไปเมนูหลัก
+                </button>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-medium">ระดับภารกิจ:</span>
+                    <div class="flex gap-2" id="puzzle-difficulty-selector">
+                        </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div class="lg:col-span-4 bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-4 sticky top-24">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+                            ภารกิจปฏิบัติการลอจิก
+                        </span>
+                        <span class="text-yellow-400 text-sm" id="puzzle-level-title">ภารกิจที่ 1/3</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-100" id="puzzle-title">---</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed" id="puzzle-desc">---</p>
+                    
+                    <div class="bg-indigo-950/20 border border-indigo-500/15 p-3 rounded-xl text-xs space-y-1">
+                        <strong class="text-indigo-400">💡 คำแนะนำความช่วยเหลือ:</strong>
+                        <p class="text-slate-300" id="puzzle-hint">---</p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800/80 space-y-3">
+                        <button onclick="checkPuzzleAnswer()" class="w-full py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                            🚀 ส่งตรวจวิเคราะห์ผังงาน
+                        </button>
+                        <button onclick="resetCurrentPuzzle()" class="w-full py-2 px-4 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 hover:text-white transition-colors">
+                            🔄 เรียงลำดับใหม่เริ่มต้นใหม่
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-slate-400 px-1">
+                        <span>เรียงลำดับขั้นตอนผังงานจากบนลงล่างให้ถูกต้อง</span>
+                        <span>ใช้ปุ่ม <strong class="text-indigo-400">&uarr; &darr;</strong> หรือคลิกลากการ์ดเพื่อขยับ</span>
+                    </div>
+                    
+                    <div id="puzzle-board" class="space-y-3">
+                        </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+
+    <footer class="border-t border-slate-900 bg-slate-950/50 py-4 text-center text-xs text-slate-500 mt-auto px-4">
+        <p>&copy; 2026 FlowMatch. พัฒนาสำหรับการเรียนรู้สัญลักษณ์ผังงานและลอจิกคอมพิวเตอร์อย่างมีชีวิตชีวา 💻✨</p>
+    </footer>
+
+    <div id="help-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full relative space-y-6 shadow-2xl animate-float">
+            <button onclick="closeHelpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            <div class="text-center space-y-2">
+                <span class="text-4xl">🎮</span>
+                <h3 class="text-2xl font-bold text-white">วิธีเล่นและกติกา FlowMatch</h3>
+            </div>
+            <div class="space-y-4 text-sm text-slate-300 leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-indigo-400 mb-1">📚 โหมด 1: ห้องสมุดผังงาน</h4>
+                    <p>คลิกเพื่อศึกษาและทำความคุ้นเคยกับสัญลักษณ์มาตรฐานทั้ง 10 สัญลักษณ์ พร้อมข้อมูลเจาะลึกที่เข้าใจง่าย</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-cyan-400 mb-1">⚡ โหมด 2: เกมจับคู่จับเวลา</h4>
+                    <p>คลิกเลือกสัญลักษณ์ในฝั่งซ้าย จากนั้นคลิกจับคู่กับความหมายทางฝั่งขวา พยายามรักษาระดับชีวิต (3 ดวง) และเร่งเก็บคอมโบเพื่อให้ได้แต้มพิเศษสูงสุดก่อนเวลาหมด!</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-emerald-400 mb-1">🧩 โหมด 3: ภารกิจต่อวงจรลอจิก</h4>
+                    <p>จัดเรียงสัญลักษณ์และการดำเนินงานเพื่อให้กระบวนการไหลลื่นและได้อัลกอริทึมที่ถูกต้อง สามารถสลับตำแหน่งได้ด้วยปุ่มลูกศรขึ้น/ลง หรือลากการ์ด เมื่อเสร็จแล้วกด "ส่งตรวจวิเคราะห์ผังงาน"</p>
+                </div>
+            </div>
+            <button onclick="closeHelpModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20">
+                พร้อมลุยแล้ว!
+            </button>
+        </div>
+    </div>
+
+    <div id="feedback-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div id="feedback-box" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl transform scale-95 transition-transform">
+            <div id="feedback-icon" class="text-6xl animate-bounce">🎉</div>
+            <div class="space-y-2">
+                <h3 id="feedback-title" class="text-2xl font-bold text-white">ยอดเยี่ยมมาก!</h3>
+                <p id="feedback-message" class="text-slate-400 text-sm">คุณจับคู่ทุกข้อสัญลักษณ์ถูกต้องทั้งหมดในรอบนี้</p>
+            </div>
+            <div id="feedback-stats" class="text-xs bg-slate-950/50 p-3 rounded-xl border border-slate-800 text-left space-y-1">
+                </div>
+            <button id="feedback-action-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20">
+                ทำภารกิจต่อ
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // SYMBOL DEFINITIONS DICTIONARY
+        const SYMBOLS = [
+            {
+                id: 'terminator',
+                name: 'Terminator',
+                thaiName: 'จุดเริ่มต้น / สิ้นสุด',
+                desc: 'ใช้ในการระบุจุดเริ่มต้นหรือจุดสิ้นสุดของกระบวนการทำงานทุกครั้ง',
+                example: 'เริ่มต้นทำงาน, จบการทำงาน',
+                svg: `<svg class="w-12 h-12 text-indigo-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="8" y="10" width="84" height="30" rx="15" ry="15" fill="rgba(99, 102, 241, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'process',
+                name: 'Process',
+                thaiName: 'การประมวลผล / การปฏิบัติงาน',
+                desc: 'ใช้สำหรับการคำนวณสูตรคณิตศาสตร์ ประมวลผลลัพธ์ หรือการกำหนดค่าตัวแปร',
+                example: 'คำนวณผลลัพธ์ Sum = A + B, กำหนดค่าตัวแปร Count = 0',
+                svg: `<svg class="w-12 h-12 text-sky-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="8" y="10" width="84" height="30" fill="rgba(56, 189, 248, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'decision',
+                name: 'Decision',
+                thaiName: 'การตัดสินใจ / เปรียบเทียบเงื่อนไข',
+                desc: 'ใช้สำหรับตรวจสอบเงื่อนไขเพื่อเลือกตัดสินใจทิศทางถัดไป (เช่น จริง หรือ เท็จ)',
+                example: 'คะแนนสอบ >= 50 คะแนน?, ตัวเลขหารด้วย 2 ลงตัวหรือไม่?',
+                svg: `<svg class="w-12 h-12 text-amber-400" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="50,15 85,50 50,85 15,50" fill="rgba(245, 158, 11, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'input_output',
+                name: 'Data (Input / Output)',
+                thaiName: 'การรับหรือแสดงผลข้อมูลทั่วไป',
+                desc: 'ใช้สำหรับการนำเข้าหรือแสดงผลลัพธ์ข้อมูลโดยทั่วไป ไม่ได้เจาะจงใช้อุปกรณ์ใดอุปกรณ์หนึ่ง',
+                example: 'รับค่าความยาวด้านจากแป้นพิมพ์ทั่วไป, แสดงคำตอบผลรวม',
+                svg: `<svg class="w-12 h-12 text-emerald-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="25,10 92,10 75,40 8,40" fill="rgba(16, 185, 129, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'manual_input',
+                name: 'Manual Input',
+                thaiName: 'การรับเข้าข้อมูลทางคีย์บอร์ด',
+                desc: 'ใช้สำหรับการรับเข้าข้อมูลจากแป้นพิมพ์โดยตรงจากผู้ใช้เท่านั้น',
+                example: 'ป้อนค่ารหัสผ่านเข้าเครื่อง, รับค่ารหัสผ่านจากแป้นพิมพ์',
+                svg: `<svg class="w-12 h-12 text-pink-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="8,22 92,10 92,40 8,40" fill="rgba(236, 72, 153, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'display',
+                name: 'Display',
+                thaiName: 'การแสดงผลลัพธ์ทางจอภาพ',
+                desc: 'แสดงข้อความ ตัวเลข หรือกราฟิก ออกสู่จอภาพหน้าจอคอมพิวเตอร์',
+                example: 'แสดงผลคำตอบ "ผ่าน", แสดงข้อความผิดพลาดบนเครื่องโทรศัพท์',
+                svg: `<svg class="w-12 h-12 text-purple-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M 8,25 L 25,10 L 82,10 Q 92,25 82,40 L 25,40 Z" fill="rgba(168, 85, 247, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'document',
+                name: 'Document',
+                thaiName: 'การแสดงข้อมูลออกทางเอกสาร',
+                desc: 'ใช้แสดงการพิมพ์ข้อมูล รายงาน หรือสลิปกระดาษทางเครื่องพิมพ์ (Printer)',
+                example: 'พิมพ์สลิปใบเสร็จ, แสดงรายงานยอดใช้จ่ายใส่กระดาษเอกสาร',
+                svg: `<svg class="w-12 h-12 text-rose-400" viewBox="0 0 100 55" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M 10,10 L 90,10 L 90,40 Q 70,32 50,40 Q 30,48 10,40 Z" fill="rgba(244, 63, 94, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'connector',
+                name: 'On-page Connector',
+                thaiName: 'จุดเชื่อมโยงในหน้าเดียวกัน',
+                desc: 'ใช้สำหรับการเชื่อมโยงกระแสงานผังงานในกรณีเส้นทับกัน ยุ่งเหยิง หรือจบชุดทำงานภายในหน้าเดียวกัน',
+                example: 'จุดรวบคำตอบทางเลือกเพื่อเข้าสู่ขั้นตอนสิ้นสุด',
+                svg: `<svg class="w-12 h-12 text-teal-400" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="50" cy="50" r="24" fill="rgba(20, 184, 166, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'off_page',
+                name: 'Off-page Connector',
+                thaiName: 'จุดเชื่อมโยงคนละหน้ากระดาษ',
+                desc: 'ใช้สำหรับจุดเชื่อมต่อไปยังหน้าใหม่กรณีที่เขียนยาวต่อเนื่องและไม่สามารถจบในหนึ่งหน้ากระดาษได้',
+                example: 'จุดเชื่อมกระบวนการสิ้นสุดหน้า 1 ไปเริ่มหน้า 2',
+                svg: `<svg class="w-12 h-12 text-yellow-400" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="25,20 75,20 75,65 50,85 25,65" fill="rgba(234, 179, 8, 0.1)"/>
+                      </svg>`
+            },
+            {
+                id: 'preparation',
+                name: 'Preparation',
+                thaiName: 'การเตรียมตัวแปรหรือเตรียมการ',
+                desc: 'ใช้เตรียมการสำหรับการทำแบบลูป การกำหนดตัวควบคุม เช่น เงื่อนไขลูปซ้ำ For, While',
+                example: 'กำหนดจำนวนนับตั้งแต่ i = 1 จนถึง i = 12 สำหรับสูตรคูณ',
+                svg: `<svg class="w-12 h-12 text-lime-400" viewBox="0 0 100 50" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="20,10 80,10 92,25 80,40 20,40 8,25" fill="rgba(132, 204, 22, 0.1)"/>
+                      </svg>`
+            }
+        ];
+
+
+        // PUZZLES DEFINITIONS
+        const PUZZLES = [
+            {
+                id: 1,
+                title: 'ระบบเช็คตรวจอุณหภูมิคัดกรองโควิด',
+                difficulty: 'ง่าย',
+                desc: 'ภารกิจ: เรียงบล็อกผังงานระบบคัดกรองอุณหภูมิ ตรวจว่าถ้าอุณหภูมิร่างกายมากกว่า 37.5 องศาเซลเซียส ให้แจ้งเตือน แต่ถ้าน้อยกว่าให้เปิดประตูต้อนรับ',
+                steps: [
+                    { id: 'p1_1', text: 'เริ่มต้นการตรวจวัดอุณหภูมิ', symbol: 'terminator', order: 1 },
+                    { id: 'p1_2', text: 'ตรวจวัดอุณหภูมิผ่านเซ็นเซอร์หน้าเครื่อง', symbol: 'input_output', order: 2 },
+                    { id: 'p1_3', text: 'เช็คเงื่อนไข อุณหภูมิร่างกาย > 37.5 องศาเซลเซียส?', symbol: 'decision', order: 3 },
+                    { id: 'p1_4', text: 'แสดงผลคำเตือน "ไข้สูงสะสม" ออกหน้าจอโทรศัพท์', symbol: 'display', order: 4 },
+                    { id: 'p1_5', text: 'สิ้นสุดกระบวนการทำงาน', symbol: 'terminator', order: 5 }
+                ],
+                hint: 'เริ่มต้นและสิ้นสุดของกระบวนการต้องใช้สัญลักษณ์แบบรูปไข่เรียบ (Terminator) ส่วนการรับอุณหภูมิเป็นการนำเข้าข้อมูล (Data input) และการเช็คเงื่อนไขใช้เพชรสีเหลือง (Decision)'
+            },
+            {
+                id: 2,
+                title: 'โปรแกรมคำนวณหักยอดซื้อร้านค้าช้อปปิ้ง',
+                difficulty: 'ปานกลาง',
+                desc: 'ภารกิจ: เรียงลำดับขั้นตอนระบบชำระออนไลน์ รับราคาสินค้า, รับค่าเงินคงเหลือของสมาชิก, ตรวจว่าเครดิตพอหักไหม ถ้าหากพอให้อัพเดตยอดแล้วพิมพ์สลิปใบเสร็จให้ผู้ใช้',
+                steps: [
+                    { id: 'p2_1', text: 'เริ่มต้นระบบชำระเงิน', symbol: 'terminator', order: 1 },
+                    { id: 'p2_2', text: 'ผู้ใช้ป้อนราคาของสินค้าผ่านแป้นพิมพ์คีย์บอร์ด', symbol: 'manual_input', order: 2 },
+                    { id: 'p2_3', text: 'ตรวจสอบเงื่อนไข เงินของคุณในบัตรเครดิต มีค่ามากกว่าราคาหรือไม่?', symbol: 'decision', order: 3 },
+                    { id: 'p2_4', text: 'ประมวลผลคำนวณ: ยอดเงินเหลือใหม่ = เงินในบัตร - ราคาสินค้า', symbol: 'process', order: 4 },
+                    { id: 'p2_5', text: 'พิมพ์ใบเสร็จและบิลแจ้งจ่ายสินค้าเป็นกระดาษ', symbol: 'document', order: 5 },
+                    { id: 'p2_6', text: 'จบการชำระเงินเรียบร้อย', symbol: 'terminator', order: 6 }
+                ],
+                hint: 'การพิมพ์ใบเสร็จใส่กระดาษจริงต้องใช้งานไอคอน Document และการรับเข้าของมูลผ่านคีย์บอร์ดผู้ใช้คือ Manual Input เสมอ'
+            },
+            {
+                id: 3,
+                title: 'โปรแกรมวนลูปรอทำซ้ำแสดงสูตรคูณแม่ 2',
+                difficulty: 'ยาก',
+                desc: 'ภารกิจ: โปรแกรมอัจฉริยะวนรอบลูปสูตรคูณแม่ 2 โดยเริ่มตัวคูณเป็นเลข 1 วนไปเรื่อย ๆ จนกว่าตัวคูณจะเกิน 12 ถึงสิ้นสุดวงจรวนซ้ำ',
+                steps: [
+                    { id: 'p3_1', text: 'เริ่มต้นโปรแกรม', symbol: 'terminator', order: 1 },
+                    { id: 'p3_2', text: 'เตรียมตัวแปรสำหรับการวนซ้ำ เริ่มกำหนดตัวคูณ i = 1', symbol: 'preparation', order: 2 },
+                    { id: 'p3_3', text: 'คำนวณคำตอบ: ผลลัพธ์ = 2 * i', symbol: 'process', order: 3 },
+                    { id: 'p3_4', text: 'แสดงผล "2 x i = ผลลัพธ์" ปรากฏบนจอโทรศัพท์หรือจอภาพ', symbol: 'display', order: 4 },
+                    { id: 'p3_5', text: 'เพิ่มค่าตัวคูณเพื่อวนลูป: i = i + 1', symbol: 'process', order: 5 },
+                    { id: 'p3_6', text: 'เช็คตรวจเงื่อนไขลูป: ค่าของ i มีค่าน้อยกว่าหรือเท่ากับ 12 ?', symbol: 'decision', order: 6 },
+                    { id: 'p3_7', text: 'เสร็จสิ้นภารกิจสูตรคูณ', symbol: 'terminator', order: 7 }
+                ],
+                hint: 'การกำหนดตระเตรียมความพร้อมตัวแปรเริ่มต้นของลูปจะใช้ Preparation (หกเหลี่ยม) และการคำนวณผลลัพธ์จะใช้ Process (สี่เหลี่ยมผืนผ้า)'
+            }
+        ];
+
+        // GAME STATES Variables
+        let currentScreen = 'menu';
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('flowmatch_highscore') || '0');
+        let lives = 3;
+        let isMuted = false;
+        let audioCtx = null;
+
+        // Match Mode specific states
+        let matchTimer = null;
+        let matchTimeRemaining = 45;
+        let matchSelectedSymbolId = null;
+        let matchStreak = 1;
+        let matchCorrectCount = 0;
+        let currentMatchDeck = [];
+
+        // Puzzle Mode states
+        let currentPuzzleIdx = 0;
+        let currentPuzzleDeck = [];
+
+        // CONFETTI SYSTEM ENGINE
+        let confetti = null;
+
+        class ConfettiEffect {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particles = [];
+                this.active = false;
+                window.addEventListener('resize', () => this.resize());
+                this.resize();
+            }
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            start() {
+                this.active = true;
+                this.particles = [];
+                for (let i = 0; i < 100; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height - this.canvas.height,
+                        size: Math.random() * 8 + 4,
+                        color: `hsl(${Math.random() * 360}, 90%, 60%)`,
+                        speed: Math.random() * 4 + 2,
+                        angle: Math.random() * Math.PI * 2,
+                        rotSpeed: Math.random() * 0.1 - 0.05
+                    });
+                }
+                this.animate();
+            }
+            stop() {
+                this.active = false;
+            }
+            animate() {
+                if (!this.active && this.particles.length === 0) return;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.y += p.speed;
+                    p.x += Math.sin(p.angle) * 0.5;
+                    p.angle += p.rotSpeed;
+                    
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate(p.angle);
+                    this.ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    this.ctx.restore();
+                    
+                    if (p.y > this.canvas.height) {
+                        if (this.active) {
+                            p.y = -10;
+                            p.x = Math.random() * this.canvas.width;
+                        } else {
+                            this.particles.splice(i, 1);
+                        }
+                    }
+                }
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // SESSION CACHE CONTROLLER (6 Hours Expiration)
+        const CACHE_EXPIRY_MS = 6 * 60 * 60 * 1000;
+
+        function saveSessionProgress() {
+            const sessionData = {
+                score: score,
+                lives: lives,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('flowmatch_session', JSON.stringify(sessionData));
+        }
+
+        function loadSessionProgress() {
+            const sessionStr = localStorage.getItem('flowmatch_session');
+            if (sessionStr) {
+                try {
+                    const data = JSON.parse(sessionStr);
+                    const now = Date.now();
+                    if (now - data.timestamp < CACHE_EXPIRY_MS) {
+                        // โหลดข้อมูลหากยังไม่หมดอายุ 6 ชั่วโมง
+                        score = typeof data.score === 'number' ? data.score : 0;
+                        lives = typeof data.lives === 'number' ? data.lives : 3;
+                    } else {
+                        // หมดอายุแล้วทำการล้างทิ้ง
+                        localStorage.removeItem('flowmatch_session');
+                    }
+                } catch (e) {
+                    console.error("Cache read error", e);
+                    localStorage.removeItem('flowmatch_session');
+                }
+            }
+        }
+
+        // INITIAL ONLOAD
+        window.onload = function() {
+            confetti = new ConfettiEffect(document.getElementById('confetti-canvas'));
+            
+            // โหลดประวัติการเล่นก่อนที่จะเรนเดอร์ UI
+            loadSessionProgress();
+
+            // Render high score display
+            document.getElementById('high-score-val').innerText = `${highScore} คะแนน`;
+            updateHeaderStatus();
+
+            // Load Study list initially
+            renderStudyLibrary();
+        }
+
+        // AUDIO GENERATION VIA WEB AUDIO API (Offline support, retro arcade sounds)
+        function playSynthSound(type) {
+            if (isMuted) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                
+                if (type === 'select') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'correct') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                    osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'wrong') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'victory') {
+                    // Quick happy retro melody
+                    const notes = [440, 494, 523, 587, 659, 698, 784, 880];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'square';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        g.gain.setValueAtTime(0.05, now + idx * 0.07);
+                        g.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.07 + 0.15);
+                        o.start(now + idx * 0.07);
+                        o.stop(now + idx * 0.07 + 0.18);
+                    });
+                }
+            } catch (err) {
+                console.log("Audio contexts pending interaction: ", err);
+            }
+        }
+
+        // SCREEN NAV CONTROLLER
+        function changeScreen(screenId) {
+            playSynthSound('select');
+            
+            // Clean up timers
+            if (matchTimer) {
+                clearInterval(matchTimer);
+                matchTimer = null;
+            }
+
+            // Hide all screen sections
+            document.querySelectorAll('main > section').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            // Show active screen
+            const activeScreen = document.getElementById(`screen-${screenId}`);
+            if (activeScreen) {
+                activeScreen.classList.remove('hidden');
+            }
+            
+            currentScreen = screenId;
+            confetti.stop();
+
+            // Screen setups
+            if (screenId === 'menu') {
+                updateHighScoreDisplay();
+            } else if (screenId === 'match') {
+                startMatchGame();
+            } else if (screenId === 'puzzle') {
+                loadPuzzle(0);
+            }
+        }
+
+        // Mute / Unmute
+        function toggleMute() {
+            isMuted = !isMuted;
+            const soundBtn = document.getElementById('sound-btn');
+            soundBtn.innerText = isMuted ? '🔇' : '🔊';
+            playSynthSound('select');
+        }
+
+        // MODAL HANDLERS
+        function openHelpModal() {
+            playSynthSound('select');
+            document.getElementById('help-modal').classList.remove('hidden');
+        }
+        function closeHelpModal() {
+            playSynthSound('select');
+            document.getElementById('help-modal').classList.add('hidden');
+        }
+
+        // UPDATE STATUS
+        function updateHeaderStatus() {
+            document.getElementById('header-score').innerText = `คะแนน: ${score}`;
+            let heartString = '';
+            for (let i = 0; i < 3; i++) {
+                heartString += i < lives ? '❤️' : '🖤';
+            }
+            document.getElementById('header-lives').innerText = `พลังชีวิต: ${heartString}`;
+            
+            // บันทึก progress อัตโนมัติลงเครื่องทุกครั้งที่คะแนนหรือพลังชีวิตเปลี่ยน
+            saveSessionProgress();
+        }
+
+        function updateHighScoreDisplay() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flowmatch_highscore', highScore);
+            }
+            document.getElementById('high-score-val').innerText = `${highScore} คะแนน`;
+        }
+
+        function resetHighScore() {
+            playSynthSound('wrong');
+            if (confirm('คุณต้องการรีเซ็ตสถิติคะแนนสูงสุดเป็น 0 หรือไม่?')) {
+                highScore = 0;
+                localStorage.setItem('flowmatch_highscore', '0');
+                document.getElementById('high-score-val').innerText = '0 คะแนน';
+            }
+        }
+
+        // 📚 1. STUDY LIBRARY CONTROLS & RENDER
+        function renderStudyLibrary() {
+            const container = document.getElementById('study-list-container');
+            container.innerHTML = '';
+            
+            SYMBOLS.forEach((sym) => {
+                const card = document.createElement('div');
+                card.className = "group relative bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4 hover:border-indigo-500/40 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-slate-950/40";
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 border-b border-slate-800 pb-3">
+                        <div class="p-2 bg-slate-950 rounded-xl border border-slate-800/80">
+                            ${sym.svg}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-100 group-hover:text-indigo-400 transition-colors">${sym.thaiName}</h4>
+                            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">${sym.name}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2 flex-grow">
+                        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">${sym.desc}</p>
+                        <div class="bg-slate-950/40 p-2.5 rounded-lg border border-slate-850 text-xs">
+                            <span class="text-indigo-400 font-bold block mb-1">💡 ตัวอย่างเช่น:</span>
+                            <span class="text-slate-300 font-medium">${sym.example}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+
+        // ⚡ 2. MATCHING GAME LOGIC ENGINE
+        function startMatchGame() {
+            // ถ้าพลังชีวิตหมดไปแล้วในรอบก่อนหน้า ให้เริ่มคะแนนและพลังชีวิตใหม่
+            if (lives <= 0) {
+                score = 0;
+                lives = 3;
+            }
+            
+            matchStreak = 1;
+            matchCorrectCount = 0;
+            matchTimeRemaining = 45;
+            matchSelectedSymbolId = null;
+            updateHeaderStatus();
+
+            // Pick 5 random symbols
+            const shuffled = [...SYMBOLS].sort(() => 0.5 - Math.random());
+            currentMatchDeck = shuffled.slice(0, 5);
+
+            // Render symbol options (left side)
+            renderMatchSymbols();
+
+            // Render definition targets shuffled (right side)
+            renderMatchMeanings();
+
+            // Start Timer Loop
+            if (matchTimer) clearInterval(matchTimer);
+            matchTimer = setInterval(() => {
+                matchTimeRemaining--;
+                document.getElementById('match-timer').innerText = `เวลาเหลือ: ${matchTimeRemaining} วินาที`;
+                
+                if (matchTimeRemaining <= 0) {
+                    clearInterval(matchTimer);
+                    endMatchGame(false, 'หมดเวลาแล้ว! คุณเก่งมากแต่ต้องว่องไวกว่านี้นะ');
+                }
+            }, 1000);
+        }
+
+        function renderMatchSymbols() {
+            const container = document.getElementById('match-symbols-container');
+            container.innerHTML = '';
+            
+            currentMatchDeck.forEach(sym => {
+                const button = document.createElement('button');
+                button.id = `match-sym-${sym.id}`;
+                button.className = "flex flex-col items-center justify-center p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition-all select-none group w-full gap-2 relative shadow-md";
+                button.onclick = () => selectSymbolMatch(sym.id);
+                
+                // Keep SVG small inside buttons
+                button.innerHTML = `
+                    <div class="pointer-events-none group-hover:scale-105 transition-transform">
+                        ${sym.svg}
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-medium tracking-wider group-hover:text-slate-200 transition-colors uppercase">
+                        ${sym.name}
+                    </span>
+                    <div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-transparent border border-slate-700 select-marker"></div>
+                `;
+                container.appendChild(button);
+            });
+        }
+
+        function renderMatchMeanings() {
+            const container = document.getElementById('match-meanings-container');
+            container.innerHTML = '';
+
+            // Copy deck and shuffle meaning cards
+            const shuffledMeanings = [...currentMatchDeck].sort(() => 0.5 - Math.random());
+            
+            shuffledMeanings.forEach(sym => {
+                const button = document.createElement('button');
+                button.id = `match-mean-${sym.id}`;
+                button.className = "w-full text-left p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all flex items-center gap-4 group hover:shadow-lg";
+                button.onclick = () => selectMeaningMatch(sym.id);
+
+                button.innerHTML = `
+                    <div class="w-8 h-8 rounded-full border border-slate-700/80 bg-slate-950 flex items-center justify-center text-xs text-slate-400 group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-colors font-bold select-marker-num">
+                        ?
+                    </div>
+                    <div class="flex-grow">
+                        <strong class="text-xs sm:text-sm text-slate-100 group-hover:text-cyan-300 transition-colors">${sym.thaiName}</strong>
+                        <p class="text-[11px] text-slate-400 mt-1 leading-relaxed line-clamp-2">${sym.desc}</p>
+                    </div>
+                `;
+                container.appendChild(button);
+            });
+        }
+
+        function selectSymbolMatch(symbolId) {
+            playSynthSound('select');
+
+            // If matched already, ignore
+            const card = document.getElementById(`match-sym-${symbolId}`);
+            if (card.classList.contains('opacity-40')) return;
+
+            // Remove selected classes from all symbol buttons
+            currentMatchDeck.forEach(sym => {
+                const el = document.getElementById(`match-sym-${sym.id}`);
+                if (el) {
+                    el.classList.remove('border-indigo-500', 'bg-indigo-950/20', 'glow-purple');
+                    const marker = el.querySelector('.select-marker');
+                    if (marker) {
+                        marker.classList.replace('bg-indigo-500', 'bg-transparent');
+                    }
+                }
+            });
+
+            // Highlight current selection
+            matchSelectedSymbolId = symbolId;
+            card.classList.add('border-indigo-500', 'bg-indigo-950/20', 'glow-purple');
+            const marker = card.querySelector('.select-marker');
+            if (marker) {
+                marker.classList.replace('bg-transparent', 'bg-indigo-500');
+            }
+        }
+
+        function selectMeaningMatch(meaningId) {
+            if (!matchSelectedSymbolId) {
+                // No symbol selected yet
+                playSynthSound('wrong');
+                const targetBtn = document.getElementById(`match-mean-${meaningId}`);
+                if (targetBtn) {
+                    targetBtn.classList.add('animate-shake');
+                    setTimeout(() => targetBtn.classList.remove('animate-shake'), 400);
+                }
+                return;
+            }
+
+            const activeSymbolId = matchSelectedSymbolId;
+            matchSelectedSymbolId = null; // reset
+
+            const symbolBtn = document.getElementById(`match-sym-${activeSymbolId}`);
+            const meaningBtn = document.getElementById(`match-mean-${meaningId}`);
+
+            if (!symbolBtn || !meaningBtn) return; // safety check
+
+            if (activeSymbolId === meaningId) {
+                // CORRECT PAIR
+                playSynthSound('correct');
+                
+                // Color locks with preserved functional class identifiers
+                symbolBtn.className = "flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/60 transition-all opacity-40 select-none pointer-events-none w-full gap-2 relative shadow-inner";
+                const symMarker = symbolBtn.querySelector('.select-marker');
+                if (symMarker) {
+                    symMarker.className = "absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 select-marker";
+                }
+
+                meaningBtn.className = "w-full text-left p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/60 transition-all opacity-40 pointer-events-none flex items-center gap-4";
+                const meanMarker = meaningBtn.querySelector('.select-marker-num');
+                if (meanMarker) {
+                    meanMarker.className = "w-8 h-8 rounded-full border border-emerald-500/30 bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-400 font-bold select-marker-num";
+                    meanMarker.innerText = "✓";
+                }
+
+                // Add score
+                const pointsEarned = 100 * matchStreak;
+                score += pointsEarned;
+                matchCorrectCount++;
+                matchStreak++;
+
+                updateHeaderStatus();
+                document.getElementById('match-combo').innerText = `คอมโบ: X${matchStreak}`;
+
+                // Check Victory criteria
+                if (matchCorrectCount >= currentMatchDeck.length) {
+                    clearInterval(matchTimer);
+                    endMatchGame(true, 'สุดยอดมาก! คุณเชื่อมโยงผังงานทุกสัญลักษณ์ถูกต้องสมบูรณ์แบบ');
+                }
+
+            } else {
+                // WRONG PAIR
+                playSynthSound('wrong');
+                
+                // Streak loss
+                matchStreak = 1;
+                document.getElementById('match-combo').innerText = `คอมโบ: X1`;
+
+                // Damage logic
+                lives--;
+                updateHeaderStatus();
+
+                // Clear styling for selected button safely
+                symbolBtn.classList.remove('border-indigo-500', 'bg-indigo-950/20', 'glow-purple');
+                const symMarker = symbolBtn.querySelector('.select-marker');
+                if (symMarker) {
+                    symMarker.classList.replace('bg-indigo-500', 'bg-transparent');
+                }
+
+                // Shake error animations
+                symbolBtn.classList.add('animate-shake', 'border-red-500/60');
+                meaningBtn.classList.add('animate-shake', 'border-red-500/60');
+                setTimeout(() => {
+                    symbolBtn.classList.remove('animate-shake', 'border-red-500/60');
+                    meaningBtn.classList.remove('animate-shake', 'border-red-500/60');
+                }, 400);
+
+                // Check game over
+                if (lives <= 0) {
+                    clearInterval(matchTimer);
+                    endMatchGame(false, 'ลอสลิตี้! พลังชีวิตหมดเรียบร้อยแล้ว ลองทบทวนที่ห้องสมุดแล้วกลับมาแก้แค้นใหม่นะ!');
+                }
+            }
+        }
+
+        function endMatchGame(isSuccess, message) {
+            updateHighScoreDisplay();
+            
+            const feedbackModal = document.getElementById('feedback-modal');
+            const fBox = document.getElementById('feedback-box');
+            const fIcon = document.getElementById('feedback-icon');
+            const fTitle = document.getElementById('feedback-title');
+            const fMsg = document.getElementById('feedback-message');
+            const fStats = document.getElementById('feedback-stats');
+            const fBtn = document.getElementById('feedback-action-btn');
+
+            if (isSuccess) {
+                confetti.start();
+                playSynthSound('victory');
+                fIcon.innerText = "🏆";
+                fTitle.innerText = "ชัยชนะสมบูรณ์แบบ!";
+                fTitle.className = "text-2xl font-bold text-emerald-400";
+                fMsg.innerText = message;
+                fStats.innerHTML = `
+                    <div>✨ คะแนนที่ได้รอบนี้: <strong>${score} คะแนน</strong></div>
+                    <div>⏱ เวลาเหลือ: <strong>${matchTimeRemaining} วินาที</strong></div>
+                    <div>❤️ พลังชีวิตเหลือ: <strong>${lives} ดวง</strong></div>
+                `;
+                fBtn.innerText = "ท้าทายอีกรอบ";
+                fBtn.onclick = () => {
+                    feedbackModal.classList.add('hidden');
+                    startMatchGame();
+                }
+            } else {
+                playSynthSound('wrong');
+                fIcon.innerText = "💀";
+                fTitle.innerText = "จบภารกิจ!";
+                fTitle.className = "text-2xl font-bold text-red-400";
+                fMsg.innerText = message;
+                fStats.innerHTML = `
+                    <div>คะแนนสะสมได้: <strong>${score} คะแนน</strong></div>
+                    <div>จำนวนที่ตอบคู่ถูกต้อง: <strong>${matchCorrectCount}/5</strong></div>
+                `;
+                fBtn.innerText = "กลับสู่เมนูหลัก";
+                fBtn.onclick = () => {
+                    feedbackModal.classList.add('hidden');
+                    changeScreen('menu');
+                }
+            }
+
+            feedbackModal.classList.remove('hidden');
+        }
+
+
+        // 🧩 3. FLOW PUZZLE LOGIC ENGINE
+        function loadPuzzle(idx) {
+            // ถ้าพลังชีวิตหมดไปแล้ว ให้เริ่มคะแนนและพลังชีวิตใหม่เช่นกัน
+            if (lives <= 0) {
+                score = 0;
+                lives = 3;
+                updateHeaderStatus();
+            }
+
+            currentPuzzleIdx = idx;
+            const puzzle = PUZZLES[idx];
+            
+            // Render difficulty options
+            const diffContainer = document.getElementById('puzzle-difficulty-selector');
+            diffContainer.innerHTML = '';
+            
+            PUZZLES.forEach((p, i) => {
+                const pBtn = document.createElement('button');
+                pBtn.className = `px-3 py-1 rounded-full text-xs font-semibold ${i === idx ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`;
+                pBtn.innerText = `${p.title} (${p.difficulty})`;
+                pBtn.onclick = () => loadPuzzle(i);
+                diffContainer.appendChild(pBtn);
+            });
+
+            // Set texts
+            document.getElementById('puzzle-level-title').innerText = `ภารกิจที่ ${idx + 1}/3 (${puzzle.difficulty})`;
+            document.getElementById('puzzle-title').innerText = puzzle.title;
+            document.getElementById('puzzle-desc').innerText = puzzle.desc;
+            document.getElementById('puzzle-hint').innerText = puzzle.hint;
+
+            // Generate deck of steps shuffled
+            currentPuzzleDeck = [...puzzle.steps].sort(() => 0.5 - Math.random());
+
+            renderPuzzleBoard();
+        }
+
+        function renderPuzzleBoard() {
+            const board = document.getElementById('puzzle-board');
+            board.innerHTML = '';
+
+            currentPuzzleDeck.forEach((step, index) => {
+                const card = document.createElement('div');
+                card.id = `puzzle-step-${step.id}`;
+                card.className = "relative flex items-center justify-between p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/30 transition-all select-none group w-full gap-4 shadow-sm active:scale-[0.99]";
+                
+                // Get matching symbol SVG representation
+                const matchedSymbol = SYMBOLS.find(s => s.id === step.symbol);
+                const svgBlock = matchedSymbol ? matchedSymbol.svg : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="p-1 bg-slate-950 rounded-lg flex items-center justify-center scale-90">
+                            ${svgBlock}
+                        </div>
+                        <div>
+                            <span class="text-slate-100 text-xs sm:text-sm font-semibold">${step.text}</span>
+                            <div class="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">${matchedSymbol ? matchedSymbol.name : 'Unknown'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="movePuzzleStep(${index}, -1)" class="w-8 h-8 rounded bg-slate-850 hover:bg-slate-700 border border-slate-700/80 flex items-center justify-center text-xs text-indigo-400 font-bold hover:text-white transition-all" title="ขึ้น">
+                            &uarr;
+                        </button>
+                        <button onclick="movePuzzleStep(${index}, 1)" class="w-8 h-8 rounded bg-slate-850 hover:bg-slate-700 border border-slate-700/80 flex items-center justify-center text-xs text-indigo-400 font-bold hover:text-white transition-all" title="ลง">
+                            &darr;
+                        </button>
+                    </div>
+                `;
+                board.appendChild(card);
+            });
+        }
+
+        function movePuzzleStep(index, direction) {
+            playSynthSound('select');
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= currentPuzzleDeck.length) return; // out of bounds
+
+            // Swap element
+            const temp = currentPuzzleDeck[index];
+            currentPuzzleDeck[index] = currentPuzzleDeck[targetIndex];
+            currentPuzzleDeck[targetIndex] = temp;
+
+            renderPuzzleBoard();
+        }
+
+        function resetCurrentPuzzle() {
+            playSynthSound('select');
+            const puzzle = PUZZLES[currentPuzzleIdx];
+            currentPuzzleDeck = [...puzzle.steps].sort(() => 0.5 - Math.random());
+            renderPuzzleBoard();
+        }
+
+        function checkPuzzleAnswer() {
+            // Compare ordered indexes
+            let hasError = false;
+            let errorIndex = -1;
+
+            for (let i = 0; i < currentPuzzleDeck.length; i++) {
+                if (currentPuzzleDeck[i].order !== (i + 1)) {
+                    hasError = true;
+                    errorIndex = i;
+                    break;
+                }
+            }
+
+            const feedbackModal = document.getElementById('feedback-modal');
+            const fBox = document.getElementById('feedback-box');
+            const fIcon = document.getElementById('feedback-icon');
+            const fTitle = document.getElementById('feedback-title');
+            const fMsg = document.getElementById('feedback-message');
+            const fStats = document.getElementById('feedback-stats');
+            const fBtn = document.getElementById('feedback-action-btn');
+
+            if (!hasError) {
+                // VICTORY CONFIRMED
+                confetti.start();
+                playSynthSound('victory');
+                
+                // Add Score
+                const puzzlePoints = (currentPuzzleIdx + 1) * 300;
+                score += puzzlePoints;
+                updateHeaderStatus();
+                updateHighScoreDisplay();
+
+                fIcon.innerText = "🚀✨";
+                fTitle.innerText = "ลอจิกถูกต้องสมบูรณ์!";
+                fTitle.className = "text-2xl font-bold text-emerald-400";
+                fMsg.innerText = `ยินดีด้วย! คุณประกอบและจัดเรียงแผนภาพ Flowchart '${PUZZLES[currentPuzzleIdx].title}' ได้อย่างมีเหตุและผล`;
+                fStats.innerHTML = `
+                    <div>🌟 รับคะแนนสะสมเพิ่ม: <strong class="text-emerald-400">+${puzzlePoints} แต้ม</strong></div>
+                    <div>🏅 ระดับความยาก: <strong class="text-indigo-400">${PUZZLES[currentPuzzleIdx].difficulty}</strong></div>
+                `;
+                
+                // If there's a next puzzle, allow progression
+                if (currentPuzzleIdx < PUZZLES.length - 1) {
+                    fBtn.innerText = "ท้าทายภารกิจระดับถัดไป";
+                    fBtn.onclick = () => {
+                        feedbackModal.classList.add('hidden');
+                        loadPuzzle(currentPuzzleIdx + 1);
+                    }
+                } else {
+                    fBtn.innerText = "สำเร็จทุกภารกิจ! กลับไปหน้าแรก";
+                    fBtn.onclick = () => {
+                        feedbackModal.classList.add('hidden');
+                        changeScreen('menu');
+                    }
+                }
+            } else {
+                // LOGIC FAIL
+                playSynthSound('wrong');
+
+                // Animate error step cards to alert user
+                const badCard = document.getElementById(`puzzle-step-${currentPuzzleDeck[errorIndex].id}`);
+                if (badCard) {
+                    badCard.classList.add('animate-shake', 'border-red-500/60', 'bg-red-950/20');
+                    setTimeout(() => {
+                        badCard.classList.remove('animate-shake', 'border-red-500/60', 'bg-red-950/20');
+                    }, 600);
+                }
+
+                fIcon.innerText = "⚠️";
+                fTitle.innerText = "การวิเคราะห์ลอจิกขัดข้อง";
+                fTitle.className = "text-2xl font-bold text-amber-500";
+                fMsg.innerText = "ผังงานของคุณมีขั้นตอนที่เรียงลำดับขัดแย้งกับหลักความเป็นจริงหรือประเภทรูปทรงผิดพลาด กรุณาลองวิเคราะห์ใหม่อีกครั้ง";
+                fStats.innerHTML = `
+                    <div class="text-amber-400 font-bold">🔧 วิเคราะห์ข้อผิดพลาดให้แล้ว:</div>
+                    <div class="text-xs text-slate-300">ตัวเช็คเกอร์ตรวจพบข้อบกพร่องที่ <strong class="text-red-400">ขั้นตอนที่ ${errorIndex + 1}</strong>: ลองสังเกตคำใบ้เพื่อปรับสลับใหม่อีกรอบสิ!</div>
+                `;
+                fBtn.innerText = "กลับไปปรับปรุงตรรกะผังงาน";
+                fBtn.onclick = () => {
+                    feedbackModal.classList.add('hidden');
+                }
+            }
+
+            feedbackModal.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
