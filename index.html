@@ -336,7 +336,8 @@
         }
 
         // --- ระบบจอแสดงผลอื่นๆ (ตัดย่อให้พอดีสำหรับโชว์เคส) ---
-        function changeScreen(screenId) {
+function changeScreen(screenId) {
+            playSynthSound('select'); // เพิ่มเสียงตอนกดเมนู
             document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`screen-${screenId}`).classList.remove('hidden');
             if (screenId === 'match') startMatchGame();
@@ -388,19 +389,23 @@
             });
         }
 
-        function selectSym(id) { 
+function selectSym(id) { 
+            playSynthSound('select'); // เพิ่มเสียงกดเลือก
             matchSelected = id; 
             document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500'));
             document.getElementById(`sym-${id}`).classList.add('border-indigo-500');
         }
+
         function selectMean(id) {
             if (!matchSelected) return;
             if (matchSelected === id) {
+                playSynthSound('correct'); // เพิ่มเสียงตอบถูก
                 document.getElementById(`sym-${id}`).classList.add('opacity-30', 'pointer-events-none');
                 document.getElementById(`mean-${id}`).classList.add('opacity-30', 'pointer-events-none');
                 score += 100; matchCorrectCount++; updateHeaderStatus();
                 if(matchCorrectCount >= 5) { clearInterval(matchTimer); showMatchEnd(true, 'สมบูรณ์แบบ!'); }
             } else {
+                playSynthSound('wrong'); // เพิ่มเสียงตอบผิด
                 lives--; updateHeaderStatus();
                 if(lives <= 0) { clearInterval(matchTimer); showMatchEnd(false, 'พลังชีวิตหมดแล้ว!'); }
             }
@@ -408,6 +413,9 @@
         }
 
         function showMatchEnd(success, msg) {
+            if (success) playSynthSound('victory'); // เพิ่มเสียงตอนชนะ
+            else playSynthSound('wrong'); // เสียงตอนแพ้
+
             document.getElementById('feedback-modal').classList.remove('hidden');
             document.getElementById('feedback-title').innerText = success ? "ชนะแล้ว!" : "เกมโอเวอร์";
             document.getElementById('feedback-message').innerText = msg;
@@ -417,7 +425,6 @@
                 else startMatchGame();
             };
         }
-
         // Puzzle Game
         let puzzleDeck = [];
         function loadPuzzle() {
