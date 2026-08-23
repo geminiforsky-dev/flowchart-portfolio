@@ -14,8 +14,6 @@
     <style>
         body { font-family: 'Prompt', 'Inter', sans-serif; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); }
         .cyber-grid { background-image: radial-gradient(rgba(99, 102, 241, 0.15) 1px, transparent 1px); background-size: 24px 24px; }
-        .glow-cyan:hover { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
-        .glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         .animate-float { animation: float 4s ease-in-out infinite; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
@@ -166,11 +164,12 @@
             </div>
             <div class="space-y-3">
                 <input type="text" id="player-name-input" maxlength="20" placeholder="พิมพ์ชื่อของคุณที่นี่..." 
-                       class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-center focus:outline-none focus:border-indigo-500">
+                       class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                <p class="text-xs text-slate-500">บันทึกสถิติลง Leaderboard ของงาน</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="skipSaveName()" class="w-1/3 py-3 bg-slate-800 text-slate-300 rounded-xl text-sm font-medium">ข้าม</button>
-                <button onclick="confirmSaveName()" class="w-2/3 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20">บันทึกชื่อ</button>
+                <button onclick="skipSaveName()" class="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all text-sm font-medium">ข้าม</button>
+                <button onclick="confirmSaveName()" class="w-2/3 py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20">บันทึกชื่อ</button>
             </div>
         </div>
     </div>
@@ -188,13 +187,12 @@
         </div>
     </div>
 
-    <!-- Feedback Modal (แจ้งผลตอนเล่นเกม) -->
+    <!-- Feedback Modal -->
     <div id="feedback-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[55] flex items-center justify-center p-4 hidden">
         <div id="feedback-box" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6">
             <div id="feedback-icon" class="text-6xl">🎉</div>
             <h3 id="feedback-title" class="text-2xl font-bold text-white">ยอดเยี่ยมมาก!</h3>
             <p id="feedback-message" class="text-slate-400 text-sm">ข้อความ</p>
-            <div id="feedback-stats" class="text-xs bg-slate-950/50 p-3 rounded-xl border border-slate-800 text-left space-y-1"></div>
             <button id="feedback-action-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">ดำเนินการต่อ</button>
         </div>
     </div>
@@ -221,7 +219,7 @@
                 ]
             }
         ];
-        // Firebase Config ของคุณ
+        // --- 1. การตั้งค่า Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyDzBz65IEWjI1FcsMCshIHKkb2bESXECI0",
             authDomain: "flowchart-portfolio.firebaseapp.com",
@@ -237,7 +235,6 @@
         const database = firebase.database();
         let leaderboard = [];
 
-        // ซิงค์ Leaderboard Real-time
         database.ref('leaderboard').on('value', (snapshot) => {
             leaderboard = snapshot.val() || [];
             updateHighScoreDisplay();
@@ -245,7 +242,105 @@
             if (modal && !modal.classList.contains('hidden')) openLeaderboard();
         });
 
-        // 4-Hour Cache System
+        // --- 2. ระบบ Audio Engine (เสียง 9 แบบ) ---
+        let isMuted = false;
+        let audioCtx = null;
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('sound-btn').innerText = isMuted ? '🔇' : '🔊';
+            playSynthSound('select');
+        }
+
+        function playSynthSound(type) {
+            if (isMuted) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                
+                if (type === 'victory') {
+                    const notes = [440, 494, 523, 587, 659, 698, 784, 880];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g); g.connect(audioCtx.destination);
+                        o.type = 'square';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        g.gain.setValueAtTime(0.05, now + idx * 0.07);
+                        g.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.07 + 0.15);
+                        o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.18);
+                    });
+                    return;
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+
+                if (type === 'select') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                } else if (type === 'move') { 
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(500, now + 0.08);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
+                } else if (type === 'pop') { 
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
+                } else if (type === 'sweep') { 
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(700, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+                } else if (type === 'save') { 
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.setValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.setValueAtTime(0.0, now + 0.09); 
+                    gain.gain.setValueAtTime(0.05, now + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                } else if (type === 'trash') { 
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+                }
+            } catch (err) { console.log(err); }
+        }
+
+        // --- 3. ระบบ Cache และการควบคุมเกมหลัก ---
         let score = 0; let lives = 3; let pendingScoreToSave = 0;
         const CACHE_EXPIRY_MS = 4 * 60 * 60 * 1000;
 
@@ -283,8 +378,32 @@
             document.getElementById('high-score-val').innerText = `${topScore} คะแนน`;
         }
 
-        // Leaderboard UI & Delete
+        function changeScreen(screenId) {
+            playSynthSound('select');
+            document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            if (screenId === 'match') startMatchGame();
+            if (screenId === 'puzzle') loadPuzzle(0);
+        }
+
+        function renderStudyLibrary() {
+            const container = document.getElementById('study-list-container');
+            container.innerHTML = ''; 
+            SYMBOLS.forEach(sym => {
+                container.innerHTML += `
+                <div class="bg-slate-800/80 p-5 rounded-2xl flex gap-4 items-center border border-slate-700 shadow-md">
+                    <div class="flex-shrink-0">${sym.svg}</div>
+                    <div>
+                        <h4 class="font-bold text-slate-100 text-sm sm:text-base">${sym.thaiName}</h4>
+                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">${sym.desc}</p>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // --- 4. ระบบ Leaderboard ---
         function openLeaderboard() {
+            playSynthSound('pop');
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = '';
             if (leaderboard.length === 0) list.innerHTML = '<p class="text-center py-4">ยังไม่มีสถิติ มาร่วมประเดิมคนแรกกันเถอะ!</p>';
@@ -299,17 +418,24 @@
             });
             document.getElementById('leaderboard-modal').classList.remove('hidden');
         }
-        function closeLeaderboard() { document.getElementById('leaderboard-modal').classList.add('hidden'); }
+        function closeLeaderboard() { 
+            playSynthSound('sweep');
+            document.getElementById('leaderboard-modal').classList.add('hidden'); 
+        }
         
         function deleteEntry(index) {
+            playSynthSound('select');
             const pwd = prompt(`[Staff Only] ยืนยันการลบชื่อ "${leaderboard[index].name}":`);
             if (pwd === "ITS") {
+                playSynthSound('trash');
                 leaderboard.splice(index, 1);
                 database.ref('leaderboard').set(leaderboard);
-            } else if (pwd !== null) alert("❌ รหัสผิด!");
+            } else if (pwd !== null) {
+                playSynthSound('wrong');
+                alert("❌ รหัสผิด!");
+            }
         }
 
-        // Save Score Logic
         function checkAndSaveScore(finalScore) {
             pendingScoreToSave = finalScore;
             setTimeout(() => {
@@ -318,48 +444,32 @@
                 document.getElementById('name-input-modal').classList.remove('hidden');
             }, 500);
         }
+
         function confirmSaveName() {
             const name = document.getElementById('player-name-input').value;
             if (name && name.trim() !== "") {
+                playSynthSound('save');
                 leaderboard.push({ name: name.trim().substring(0, 20), score: pendingScoreToSave });
                 leaderboard.sort((a, b) => b.score - a.score);
                 database.ref('leaderboard').set(leaderboard);
                 document.getElementById('name-input-modal').classList.add('hidden');
                 clearSessionProgress();
                 openLeaderboard();
-            } else alert("กรุณาใส่ชื่อ");
+            } else {
+                playSynthSound('wrong');
+                const inputEl = document.getElementById('player-name-input');
+                inputEl.classList.add('animate-shake', 'border-red-500');
+                setTimeout(() => inputEl.classList.remove('animate-shake', 'border-red-500'), 400);
+            }
         }
         function skipSaveName() {
+            playSynthSound('sweep');
             document.getElementById('name-input-modal').classList.add('hidden');
             clearSessionProgress();
             openLeaderboard();
         }
 
-        // --- ระบบจอแสดงผลอื่นๆ (ตัดย่อให้พอดีสำหรับโชว์เคส) ---
-function changeScreen(screenId) {
-            playSynthSound('select'); // เพิ่มเสียงตอนกดเมนู
-            document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
-            if (screenId === 'match') startMatchGame();
-            if (screenId === 'puzzle') loadPuzzle(0);
-        }
-
-  function renderStudyLibrary() {
-            const container = document.getElementById('study-list-container');
-            container.innerHTML = ''; // เคลียร์กล่องให้สะอาดก่อน
-            SYMBOLS.forEach(sym => {
-                container.innerHTML += `
-                <div class="bg-slate-800/80 p-5 rounded-2xl flex gap-4 items-center border border-slate-700 shadow-md">
-                    <div class="flex-shrink-0">${sym.svg}</div>
-                    <div>
-                        <h4 class="font-bold text-slate-100 text-sm sm:text-base">${sym.thaiName}</h4>
-                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">${sym.desc}</p>
-                    </div>
-                </div>`;
-            });
-        }
-
-        // Match Game Variables
+        // --- 5. ระบบเกมจับคู่ ---
         let matchTimer, matchTimeRemaining = 45, matchCorrectCount = 0, currentMatchDeck = [], matchSelected = null;
         
         function startMatchGame() {
@@ -389,23 +499,22 @@ function changeScreen(screenId) {
             });
         }
 
-function selectSym(id) { 
-            playSynthSound('select'); // เพิ่มเสียงกดเลือก
+        function selectSym(id) { 
+            playSynthSound('select');
             matchSelected = id; 
             document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500'));
             document.getElementById(`sym-${id}`).classList.add('border-indigo-500');
         }
-
         function selectMean(id) {
             if (!matchSelected) return;
             if (matchSelected === id) {
-                playSynthSound('correct'); // เพิ่มเสียงตอบถูก
+                playSynthSound('correct');
                 document.getElementById(`sym-${id}`).classList.add('opacity-30', 'pointer-events-none');
                 document.getElementById(`mean-${id}`).classList.add('opacity-30', 'pointer-events-none');
                 score += 100; matchCorrectCount++; updateHeaderStatus();
                 if(matchCorrectCount >= 5) { clearInterval(matchTimer); showMatchEnd(true, 'สมบูรณ์แบบ!'); }
             } else {
-                playSynthSound('wrong'); // เพิ่มเสียงตอบผิด
+                playSynthSound('wrong');
                 lives--; updateHeaderStatus();
                 if(lives <= 0) { clearInterval(matchTimer); showMatchEnd(false, 'พลังชีวิตหมดแล้ว!'); }
             }
@@ -413,8 +522,8 @@ function selectSym(id) {
         }
 
         function showMatchEnd(success, msg) {
-            if (success) playSynthSound('victory'); // เพิ่มเสียงตอนชนะ
-            else playSynthSound('wrong'); // เสียงตอนแพ้
+            if (success) playSynthSound('victory');
+            else playSynthSound('wrong');
 
             document.getElementById('feedback-modal').classList.remove('hidden');
             document.getElementById('feedback-title').innerText = success ? "ชนะแล้ว!" : "เกมโอเวอร์";
@@ -425,7 +534,8 @@ function selectSym(id) {
                 else startMatchGame();
             };
         }
-        // Puzzle Game
+
+        // --- 6. ระบบเกมเรียงลอจิก (Puzzle) ---
         let puzzleDeck = [];
         function loadPuzzle() {
             if (lives <= 0) { score = 0; lives = 3; updateHeaderStatus(); }
@@ -434,6 +544,12 @@ function selectSym(id) {
             puzzleDeck = [...PUZZLES[0].steps].sort(() => 0.5 - Math.random());
             renderPuzzleBoard();
         }
+        
+        function resetCurrentPuzzle() {
+            playSynthSound('sweep');
+            loadPuzzle(); 
+        }
+
         function renderPuzzleBoard() {
             const board = document.getElementById('puzzle-board'); board.innerHTML = '';
             puzzleDeck.forEach((step, idx) => {
@@ -443,15 +559,19 @@ function selectSym(id) {
                 </div>`;
             });
         }
+
         function swap(idx, dir) {
+            playSynthSound('move');
             if(idx+dir < 0 || idx+dir >= puzzleDeck.length) return;
             let temp = puzzleDeck[idx]; puzzleDeck[idx] = puzzleDeck[idx+dir]; puzzleDeck[idx+dir] = temp;
             renderPuzzleBoard();
         }
+
         function checkPuzzleAnswer() {
             let error = puzzleDeck.some((s, i) => s.order !== i+1);
             document.getElementById('feedback-modal').classList.remove('hidden');
             if(!error) {
+                playSynthSound('victory');
                 score += 300; updateHeaderStatus();
                 document.getElementById('feedback-title').innerText = "ลอจิกถูกต้อง!";
                 document.getElementById('feedback-message').innerText = "รับไปเลย 300 แต้ม";
@@ -460,83 +580,10 @@ function selectSym(id) {
                     checkAndSaveScore(score);
                 };
             } else {
+                playSynthSound('wrong');
                 document.getElementById('feedback-title').innerText = "ตรรกะผิดพลาด!";
                 document.getElementById('feedback-message').innerText = "ลองเรียงใหม่ดูอีกครั้งนะ";
                 document.getElementById('feedback-action-btn').onclick = () => document.getElementById('feedback-modal').classList.add('hidden');
-            }
-        }
-// --- ระบบเสียง (Web Audio API) และปุ่มควบคุม ---
-        let isMuted = false;
-        let audioCtx = null;
-
-        function toggleMute() {
-            isMuted = !isMuted;
-            const soundBtn = document.getElementById('sound-btn');
-            // เปลี่ยนไอคอนลำโพงตามสถานะการกด
-            soundBtn.innerText = isMuted ? '🔇' : '🔊';
-            playSynthSound('select');
-        }
-
-        function playSynthSound(type) {
-            if (isMuted) return;
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-
-                const now = audioCtx.currentTime;
-                
-                if (type === 'select') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(300, now);
-                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
-                    gain.gain.setValueAtTime(0.12, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-                    osc.start(now); osc.stop(now + 0.12);
-                } else if (type === 'correct') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(523.25, now); // C5
-                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-                    osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
-                    gain.gain.setValueAtTime(0.15, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                    osc.start(now); osc.stop(now + 0.45);
-                } else if (type === 'wrong') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(260, now);
-                    osc.frequency.linearRampToValueAtTime(120, now + 0.25);
-                    gain.gain.setValueAtTime(0.12, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                    osc.start(now); osc.stop(now + 0.25);
-                } else if (type === 'victory') {
-                    const notes = [440, 494, 523, 587, 659, 698, 784, 880];
-                    notes.forEach((freq, idx) => {
-                        const o = audioCtx.createOscillator();
-                        const g = audioCtx.createGain();
-                        o.connect(g); g.connect(audioCtx.destination);
-                        o.type = 'square';
-                        o.frequency.setValueAtTime(freq, now + idx * 0.07);
-                        g.gain.setValueAtTime(0.05, now + idx * 0.07);
-                        g.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.07 + 0.15);
-                        o.start(now + idx * 0.07);
-                        o.stop(now + idx * 0.07 + 0.18);
-                    });
-                }
-            } catch (err) {
-                console.log("ระบบเสียงถูกบล็อกโดยเบราว์เซอร์: ", err);
             }
         }
     </script>
