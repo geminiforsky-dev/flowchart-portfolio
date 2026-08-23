@@ -343,11 +343,18 @@
             if (screenId === 'puzzle') loadPuzzle(0);
         }
 
-        function renderStudyLibrary() {
+  function renderStudyLibrary() {
             const container = document.getElementById('study-list-container');
+            container.innerHTML = ''; // เคลียร์กล่องให้สะอาดก่อน
             SYMBOLS.forEach(sym => {
-                container.innerHTML += `<div class="bg-slate-900/60 p-5 rounded-2xl flex gap-4 items-center">
-                    <div>${sym.svg}</div><div><h4 class="font-bold text-slate-100">${sym.thaiName}</h4><p class="text-xs text-slate-500">${sym.desc}</p></div></div>`;
+                container.innerHTML += `
+                <div class="bg-slate-800/80 p-5 rounded-2xl flex gap-4 items-center border border-slate-700 shadow-md">
+                    <div class="flex-shrink-0">${sym.svg}</div>
+                    <div>
+                        <h4 class="font-bold text-slate-100 text-sm sm:text-base">${sym.thaiName}</h4>
+                        <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">${sym.desc}</p>
+                    </div>
+                </div>`;
             });
         }
 
