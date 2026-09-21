@@ -10,6 +10,9 @@
     <!-- นำเข้า Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- นำเข้าไลบรารีพลุกระดาษ (Confetti) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         body { font-family: 'Prompt', 'Inter', sans-serif; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); }
@@ -21,8 +24,6 @@
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col cyber-grid relative overflow-x-hidden">
-
-    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
 
     <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
         <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
@@ -101,28 +102,39 @@
                 </div>
             </div>
 
-            <div class="w-full max-w-lg bg-slate-900/40 rounded-xl p-4 border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
-                <div class="flex items-center gap-2">
-                    <span>👑 คะแนนอันดับ 1 ในงาน: </span>
-                    <strong id="high-score-val" class="text-yellow-400">0 คะแนน</strong>
+            <!-- ส่วนปุ่มบันทึกคะแนนรวม -->
+            <div class="w-full max-w-lg flex flex-col gap-3 mt-4">
+                <div class="bg-slate-900/40 rounded-xl p-4 border border-slate-800 flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center gap-2">
+                        <span>👑 คะแนนอันดับ 1 ในงาน: </span>
+                        <strong id="high-score-val" class="text-yellow-400">0 คะแนน</strong>
+                    </div>
+                    <button onclick="openLeaderboard()" class="px-3 py-1.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-lg font-bold transition-all hover:bg-yellow-500/20">🏆 ดูอันดับ</button>
                 </div>
-                <button onclick="openLeaderboard()" class="px-3 py-1.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-lg font-bold">🏆 ดูอันดับ</button>
+                
+                <div class="bg-indigo-900/20 rounded-xl p-4 border border-indigo-500/30 flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-indigo-200">✨ คะแนนสะสมของคุณ: </span>
+                        <strong id="current-accumulated-score" class="text-indigo-400 text-base font-bold">0 คะแนน</strong>
+                    </div>
+                    <button onclick="promptSaveScore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors shadow-lg shadow-indigo-500/20">💾 บันทึกชื่อ</button>
+                </div>
             </div>
         </section>
 
         <!-- โหมดห้องสมุด -->
         <section id="screen-study" class="hidden space-y-6">
-            <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 bg-slate-800 px-4 py-2 rounded-xl">&larr; กลับเมนูหลัก</button>
+            <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 bg-slate-800 px-4 py-2 rounded-xl hover:bg-slate-700 transition-colors">&larr; กลับเมนูหลัก</button>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="study-list-container"></div>
         </section>
 
         <!-- โหมดจับคู่ -->
         <section id="screen-match" class="hidden space-y-6">
             <div class="flex items-center justify-between bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-                <button onclick="changeScreen('menu')" class="text-slate-400 bg-slate-850 px-3 py-1.5 rounded-lg text-sm">&larr; ออก</button>
-                <div class="flex gap-4 text-sm">
+                <button onclick="changeScreen('menu')" class="text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors px-3 py-1.5 rounded-lg text-sm">&larr; ออก</button>
+                <div class="flex gap-4 text-sm font-bold">
                     <span id="match-timer" class="text-indigo-400">เวลาเหลือ: 45 วินาที</span>
-                    <span id="match-combo" class="text-emerald-400">คอมโบ: X1</span>
+                    <span id="match-combo" class="text-emerald-400">คู่ที่เจอ: 0/5</span>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -136,14 +148,14 @@
 
         <!-- โหมดต่อวงจร -->
         <section id="screen-puzzle" class="hidden space-y-6">
-            <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 bg-slate-800 px-4 py-2 rounded-xl">&larr; กลับเมนูหลัก</button>
+            <button onclick="changeScreen('menu')" class="flex items-center gap-2 text-slate-400 bg-slate-800 px-4 py-2 rounded-xl hover:bg-slate-700 transition-colors">&larr; กลับเมนูหลัก</button>
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-4 bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-4">
                     <span class="text-emerald-400 text-xs font-bold border border-emerald-500/20 px-2 py-1 rounded">ภารกิจปฏิบัติการลอจิก</span>
                     <h3 class="text-xl font-bold text-slate-100" id="puzzle-title">---</h3>
                     <p class="text-slate-400 text-sm" id="puzzle-desc">---</p>
-                    <button onclick="checkPuzzleAnswer()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">🚀 ส่งตรวจวิเคราะห์</button>
-                    <button onclick="resetCurrentPuzzle()" class="w-full py-2 bg-slate-800 text-slate-300 rounded-xl text-xs">🔄 เริ่มจัดใหม่</button>
+                    <button onclick="checkPuzzleAnswer()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 transition-colors text-white rounded-xl font-bold">🚀 ส่งตรวจวิเคราะห์</button>
+                    <button onclick="resetCurrentPuzzle()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 transition-colors text-slate-300 rounded-xl text-xs">🔄 เริ่มจัดใหม่</button>
                 </div>
                 <div class="lg:col-span-8 space-y-3" id="puzzle-board"></div>
             </div>
@@ -159,7 +171,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-float">
             <div class="text-5xl">🎉</div>
             <div class="space-y-2">
-                <h3 class="text-2xl font-bold text-white">จบภารกิจแล้ว!</h3>
+                <h3 class="text-2xl font-bold text-white">บันทึกคะแนนรวม</h3>
                 <p id="name-input-score-msg" class="text-slate-400 text-sm">คุณทำคะแนนได้ 0 แต้ม</p>
             </div>
             <div class="space-y-3">
@@ -168,7 +180,7 @@
                 <p class="text-xs text-slate-500">บันทึกสถิติลง Leaderboard ของงาน</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="skipSaveName()" class="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all text-sm font-medium">ข้าม</button>
+                <button onclick="skipSaveName()" class="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all text-sm font-medium">ยกเลิก</button>
                 <button onclick="confirmSaveName()" class="w-2/3 py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20">บันทึกชื่อ</button>
             </div>
         </div>
@@ -183,17 +195,17 @@
                 <h3 class="text-2xl font-bold text-yellow-400">ทำเนียบผู้ร่วมกิจกรรม</h3>
             </div>
             <div id="leaderboard-list" class="space-y-3 mt-4 max-h-[50vh] overflow-y-auto pr-2"></div>
-            <button onclick="closeLeaderboard()" class="w-full py-3 bg-slate-800 text-white font-bold rounded-xl border border-slate-700">ปิดหน้าต่าง</button>
+            <button onclick="closeLeaderboard()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 transition-colors">ปิดหน้าต่าง</button>
         </div>
     </div>
 
     <!-- Feedback Modal -->
     <div id="feedback-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[55] flex items-center justify-center p-4 hidden">
         <div id="feedback-box" class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6">
-            <div id="feedback-icon" class="text-6xl">🎉</div>
+            <div id="feedback-icon" class="text-6xl">✨</div>
             <h3 id="feedback-title" class="text-2xl font-bold text-white">ยอดเยี่ยมมาก!</h3>
             <p id="feedback-message" class="text-slate-400 text-sm">ข้อความ</p>
-            <button id="feedback-action-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">ดำเนินการต่อ</button>
+            <button id="feedback-action-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors">ดำเนินการต่อ</button>
         </div>
     </div>
 
@@ -219,6 +231,7 @@
                 ]
             }
         ];
+
         // --- 1. การตั้งค่า Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyDzBz65IEWjI1FcsMCshIHKkb2bESXECI0",
@@ -235,14 +248,36 @@
         const database = firebase.database();
         let leaderboard = [];
 
+        // ฟังชันก์ดึงข้อมูลแบบใหม่ (รองรับระบบ ID .push)
         database.ref('leaderboard').on('value', (snapshot) => {
-            leaderboard = snapshot.val() || [];
+            const data = snapshot.val();
+            let newLeaderboard = [];
+            
+            if (data) {
+                for (let key in data) {
+                    newLeaderboard.push({
+                        id: key, 
+                        name: data[key].name,
+                        score: data[key].score,
+                        timestamp: data[key].timestamp || 0
+                    });
+                }
+            }
+            
+            // เรียงลำดับคะแนน หากคะแนนเท่ากันคนที่ทำก่อนจะอยู่บน
+            newLeaderboard.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.timestamp - b.timestamp; 
+            });
+            
+            leaderboard = newLeaderboard;
             updateHighScoreDisplay();
+            
             const modal = document.getElementById('leaderboard-modal');
             if (modal && !modal.classList.contains('hidden')) openLeaderboard();
         });
 
-        // --- 2. ระบบ Audio Engine (เสียง 9 แบบ) ---
+        // --- 2. ระบบ Audio Engine ---
         let isMuted = false;
         let audioCtx = null;
 
@@ -370,6 +405,11 @@
         function updateHeaderStatus() {
             document.getElementById('header-score').innerText = `คะแนน: ${score}`;
             document.getElementById('header-lives').innerText = `พลังชีวิต: ` + ('❤️'.repeat(lives)) + ('🖤'.repeat(3 - lives));
+            
+            // อัปเดตคะแนนรวมที่หน้าเมนู
+            const accumScoreEl = document.getElementById('current-accumulated-score');
+            if (accumScoreEl) accumScoreEl.innerText = `${score} คะแนน`;
+
             saveSessionProgress();
         }
 
@@ -380,10 +420,17 @@
 
         function changeScreen(screenId) {
             playSynthSound('select');
+            
+            // ถ้าไม่ได้อยู่หน้า match ให้หยุดเวลาเสมอ ป้องกันเวลาเดินทะลุมิติ
+            if (screenId !== 'match') {
+                clearInterval(matchTimer);
+            }
+
             document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            
             if (screenId === 'match') startMatchGame();
-            if (screenId === 'puzzle') loadPuzzle(0);
+            if (screenId === 'puzzle') loadPuzzle();
         }
 
         function renderStudyLibrary() {
@@ -401,23 +448,32 @@
             });
         }
 
-        // --- 4. ระบบ Leaderboard ---
+        // --- 4. ระบบ Leaderboard & บันทึกคะแนนรวม ---
+        function promptSaveScore() {
+            if (score <= 0) {
+                alert("คุณยังไม่มีคะแนนเลย ลองเข้าไปเล่นมินิเกมเพื่อเก็บคะแนนก่อนนะ!");
+                return;
+            }
+            checkAndSaveScore(score);
+        }
+
         function openLeaderboard() {
             playSynthSound('pop');
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = '';
-            if (leaderboard.length === 0) list.innerHTML = '<p class="text-center py-4">ยังไม่มีสถิติ มาร่วมประเดิมคนแรกกันเถอะ!</p>';
+            if (leaderboard.length === 0) list.innerHTML = '<p class="text-center py-4 text-slate-400">ยังไม่มีสถิติ มาร่วมประเดิมคนแรกกันเถอะ!</p>';
             leaderboard.forEach((entry, i) => {
                 let rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
                 list.innerHTML += `
                     <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-xl border border-slate-700">
                         <div class="flex gap-3 items-center"><span class="w-8 text-center">${rank}</span><span class="font-bold">${entry.name}</span></div>
-                        <div class="flex gap-3"><span class="text-yellow-400">${entry.score} pts</span>
-                        <button onclick="deleteEntry(${i})" class="text-slate-600 hover:text-red-500">🗑️</button></div>
+                        <div class="flex gap-3"><span class="text-yellow-400 font-bold">${entry.score} pts</span>
+                        <button onclick="deleteEntry(${i})" class="text-slate-600 hover:text-red-500 transition-colors">🗑️</button></div>
                     </div>`;
             });
             document.getElementById('leaderboard-modal').classList.remove('hidden');
         }
+        
         function closeLeaderboard() { 
             playSynthSound('sweep');
             document.getElementById('leaderboard-modal').classList.add('hidden'); 
@@ -425,11 +481,11 @@
         
         function deleteEntry(index) {
             playSynthSound('select');
-            const pwd = prompt(`[Staff Only] ยืนยันการลบชื่อ "${leaderboard[index].name}":`);
+            const entry = leaderboard[index];
+            const pwd = prompt(`[Staff Only] ยืนยันการลบชื่อ "${entry.name}":`);
             if (pwd === "ITS") {
                 playSynthSound('trash');
-                leaderboard.splice(index, 1);
-                database.ref('leaderboard').set(leaderboard);
+                database.ref('leaderboard/' + entry.id).remove(); // สั่งลบจาก ID
             } else if (pwd !== null) {
                 playSynthSound('wrong');
                 alert("❌ รหัสผิด!");
@@ -438,23 +494,30 @@
 
         function checkAndSaveScore(finalScore) {
             pendingScoreToSave = finalScore;
-            setTimeout(() => {
-                document.getElementById('name-input-score-msg').innerText = `คุณทำคะแนนได้ ${finalScore} แต้ม`;
-                document.getElementById('player-name-input').value = "";
-                document.getElementById('name-input-modal').classList.remove('hidden');
-            }, 500);
+            document.getElementById('name-input-score-msg').innerText = `คะแนนที่จะบันทึก: ${finalScore} แต้ม`;
+            document.getElementById('player-name-input').value = "";
+            document.getElementById('name-input-modal').classList.remove('hidden');
         }
 
         function confirmSaveName() {
             const name = document.getElementById('player-name-input').value;
             if (name && name.trim() !== "") {
                 playSynthSound('save');
-                leaderboard.push({ name: name.trim().substring(0, 20), score: pendingScoreToSave });
-                leaderboard.sort((a, b) => b.score - a.score);
-                database.ref('leaderboard').set(leaderboard);
+                
+                // 🛠️ ป้องกันผู้ใช้พิมพ์แท็ก HTML แกล้งระบบ (XSS Protection)
+                const safeName = name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;").substring(0, 20);
+                
+                // ใช้ .push() สร้างชุดข้อมูลใหม่ ไม่ทับเครื่องอื่น
+                database.ref('leaderboard').push({ 
+                    name: safeName, 
+                    score: pendingScoreToSave,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP 
+                });
+                
                 document.getElementById('name-input-modal').classList.add('hidden');
                 clearSessionProgress();
-                openLeaderboard();
+                
+                setTimeout(() => openLeaderboard(), 300);
             } else {
                 playSynthSound('wrong');
                 const inputEl = document.getElementById('player-name-input');
@@ -462,11 +525,10 @@
                 setTimeout(() => inputEl.classList.remove('animate-shake', 'border-red-500'), 400);
             }
         }
+        
         function skipSaveName() {
             playSynthSound('sweep');
             document.getElementById('name-input-modal').classList.add('hidden');
-            clearSessionProgress();
-            openLeaderboard();
         }
 
         // --- 5. ระบบเกมจับคู่ ---
@@ -477,7 +539,10 @@
             matchCorrectCount = 0; matchTimeRemaining = 45; matchSelected = null;
             updateHeaderStatus();
             currentMatchDeck = [...SYMBOLS].sort(() => 0.5 - Math.random());
-            renderMatchSymbols(); renderMatchMeanings();
+            renderMatchSymbols(); 
+            renderMatchMeanings();
+            document.getElementById('match-combo').innerText = `คู่ที่เจอ: 0/5`;
+            
             clearInterval(matchTimer);
             matchTimer = setInterval(() => {
                 matchTimeRemaining--;
@@ -487,31 +552,46 @@
         }
 
         function renderMatchSymbols() {
-            const container = document.getElementById('match-symbols-container'); container.innerHTML = '';
+            const container = document.getElementById('match-symbols-container'); 
+            container.innerHTML = '';
             currentMatchDeck.forEach(sym => {
-                container.innerHTML += `<button id="sym-${sym.id}" onclick="selectSym('${sym.id}')" class="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center">${sym.svg}<span class="text-[11px] mt-2">${sym.name}</span></button>`;
+                // เอาชื่อออก เหลือแค่สัญลักษณ์
+                container.innerHTML += `<button id="sym-${sym.id}" onclick="selectSym('${sym.id}')" class="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center transition-all hover:bg-slate-800">${sym.svg}</button>`;
             });
         }
+        
         function renderMatchMeanings() {
-            const container = document.getElementById('match-meanings-container'); container.innerHTML = '';
+            const container = document.getElementById('match-meanings-container'); 
+            container.innerHTML = '';
             [...currentMatchDeck].sort(() => 0.5 - Math.random()).forEach(sym => {
-                container.innerHTML += `<button id="mean-${sym.id}" onclick="selectMean('${sym.id}')" class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-left text-sm w-full font-bold">${sym.thaiName}</button>`;
+                container.innerHTML += `<button id="mean-${sym.id}" onclick="selectMean('${sym.id}')" class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-left text-sm w-full font-bold transition-all hover:bg-slate-800">${sym.thaiName}</button>`;
             });
         }
 
         function selectSym(id) { 
             playSynthSound('select');
             matchSelected = id; 
-            document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500'));
-            document.getElementById(`sym-${id}`).classList.add('border-indigo-500');
+            document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500', 'bg-indigo-900/30'));
+            document.getElementById(`sym-${id}`).classList.add('border-indigo-500', 'bg-indigo-900/30');
         }
+        
         function selectMean(id) {
-            if (!matchSelected) return;
+            // ถ้ายืนยันคำตอบทั้งๆ ที่ยังไม่เลือกรูป ให้ปุ่มสั่นเตือน
+            if (!matchSelected) {
+                playSynthSound('move');
+                const btn = document.getElementById(`mean-${id}`);
+                btn.classList.add('animate-shake', 'border-yellow-500');
+                setTimeout(() => btn.classList.remove('animate-shake', 'border-yellow-500'), 400);
+                return;
+            }
+
             if (matchSelected === id) {
                 playSynthSound('correct');
-                document.getElementById(`sym-${id}`).classList.add('opacity-30', 'pointer-events-none');
-                document.getElementById(`mean-${id}`).classList.add('opacity-30', 'pointer-events-none');
+                document.getElementById(`sym-${id}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
+                document.getElementById(`mean-${id}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
                 score += 100; matchCorrectCount++; updateHeaderStatus();
+                document.getElementById('match-combo').innerText = `คู่ที่เจอ: ${matchCorrectCount}/5`;
+                
                 if(matchCorrectCount >= 5) { clearInterval(matchTimer); showMatchEnd(true, 'สมบูรณ์แบบ!'); }
             } else {
                 playSynthSound('wrong');
@@ -522,16 +602,26 @@
         }
 
         function showMatchEnd(success, msg) {
-            if (success) playSynthSound('victory');
-            else playSynthSound('wrong');
+            if (success) {
+                playSynthSound('victory');
+                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); // ยิงพลุ!
+            } else {
+                playSynthSound('wrong');
+            }
 
             document.getElementById('feedback-modal').classList.remove('hidden');
+            document.getElementById('feedback-icon').innerText = success ? "🎉" : "💀";
             document.getElementById('feedback-title').innerText = success ? "ชนะแล้ว!" : "เกมโอเวอร์";
-            document.getElementById('feedback-message').innerText = msg;
+            document.getElementById('feedback-message').innerText = msg + (success ? " ได้แต้มบวกเพิ่มแล้ว นำคะแนนไปรวมกันได้เลย!" : " ไว้ลองใหม่นะ");
+            
             document.getElementById('feedback-action-btn').onclick = () => {
                 document.getElementById('feedback-modal').classList.add('hidden');
-                if(!success || matchCorrectCount >= 5) checkAndSaveScore(score);
-                else startMatchGame();
+                // กลับสู่หน้าเมนูหลัก
+                if(!success || matchCorrectCount >= 5) {
+                    changeScreen('menu'); 
+                } else {
+                    startMatchGame();
+                }
             };
         }
 
@@ -551,11 +641,15 @@
         }
 
         function renderPuzzleBoard() {
-            const board = document.getElementById('puzzle-board'); board.innerHTML = '';
+            const board = document.getElementById('puzzle-board'); 
+            board.innerHTML = '';
             puzzleDeck.forEach((step, idx) => {
-                board.innerHTML += `<div class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-sm">
+                board.innerHTML += `<div class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-sm shadow-sm">
                     <span>${step.text}</span>
-                    <div><button onclick="swap(${idx}, -1)" class="px-2 py-1 bg-slate-800 text-indigo-400">↑</button><button onclick="swap(${idx}, 1)" class="px-2 py-1 bg-slate-800 text-indigo-400 ml-1">↓</button></div>
+                    <div class="flex gap-1">
+                        <button onclick="swap(${idx}, -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 flex items-center justify-center transition-colors">↑</button>
+                        <button onclick="swap(${idx}, 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 flex items-center justify-center transition-colors">↓</button>
+                    </div>
                 </div>`;
             });
         }
@@ -570,19 +664,25 @@
         function checkPuzzleAnswer() {
             let error = puzzleDeck.some((s, i) => s.order !== i+1);
             document.getElementById('feedback-modal').classList.remove('hidden');
+            
             if(!error) {
                 playSynthSound('victory');
-                score += 300; updateHeaderStatus();
+                if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); // ยิงพลุ!
+                score += 300; 
+                updateHeaderStatus();
+                document.getElementById('feedback-icon').innerText = "🧠";
                 document.getElementById('feedback-title').innerText = "ลอจิกถูกต้อง!";
-                document.getElementById('feedback-message').innerText = "รับไปเลย 300 แต้ม";
+                document.getElementById('feedback-message').innerText = "รับไปเลย 300 แต้ม! กลับสู่เมนูเพื่อเล่นต่อหรือกดบันทึกคะแนนสะสม";
+                
                 document.getElementById('feedback-action-btn').onclick = () => {
                     document.getElementById('feedback-modal').classList.add('hidden');
-                    checkAndSaveScore(score);
+                    changeScreen('menu'); // กลับสู่หน้าเมนูหลัก
                 };
             } else {
                 playSynthSound('wrong');
+                document.getElementById('feedback-icon').innerText = "🛠️";
                 document.getElementById('feedback-title').innerText = "ตรรกะผิดพลาด!";
-                document.getElementById('feedback-message').innerText = "ลองเรียงใหม่ดูอีกครั้งนะ";
+                document.getElementById('feedback-message').innerText = "ลำดับการทำงานยังไม่ถูกต้อง ลองเรียงใหม่ดูอีกครั้งนะ";
                 document.getElementById('feedback-action-btn').onclick = () => document.getElementById('feedback-modal').classList.add('hidden');
             }
         }
