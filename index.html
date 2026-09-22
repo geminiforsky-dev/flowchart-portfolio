@@ -208,7 +208,7 @@
         </div>
     </div>
 
-    <!-- Staff Password Modal (แก้ไขใหม่ ปิดบังรหัสผ่านตอนพิมพ์) -->
+    <!-- Staff Password Modal (หน้าต่างใส่รหัสผ่านใหม่ ไม่มี Browser Prompt) -->
     <div id="password-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-float">
             <div class="text-5xl">🔒</div>
@@ -277,7 +277,7 @@
                 modal_save_title: "บันทึกคะแนนรวม", score_to_save: "คะแนนที่จะบันทึก:",
                 modal_save_desc: "บันทึกสถิติลงตารางคะแนนของงาน", btn_cancel: "ยกเลิก", btn_save: "บันทึกชื่อ", btn_confirm: "ยืนยันลบ",
                 board_title: "ตารางคะแนนกิจกรรม", board_empty: "ยังไม่มีสถิติ มาร่วมประเดิมคนแรกกันเถอะ!", btn_close: "ปิดหน้าต่าง", btn_continue: "ดำเนินการต่อ",
-                msg_no_score: "คุณยังไม่มีคะแนนเลย ลองเข้าไปเล่นมินิเกมเพื่อเก็บคะแนนก่อนนะ!",
+                notice_title: "แจ้งเตือน!", msg_no_score: "คุณยังไม่มีคะแนนเลย ลองเข้าไปเล่นมินิเกมเพื่อเก็บคะแนนก่อนนะ!",
                 msg_timeout: "หมดเวลา!", msg_perfect: "สมบูรณ์แบบ!", msg_out_lives: "พลังชีวิตหมดแล้ว!",
                 win: "ชนะแล้ว!", game_over: "เกมโอเวอร์",
                 match_win_add: " ได้แต้มบวกเพิ่มแล้ว นำคะแนนไปรวมกันได้เลย!", match_lose_add: " ไว้ลองใหม่นะ คะแนนถูกรีเซ็ตเป็น 0",
@@ -303,7 +303,7 @@
                 modal_save_title: "Save Total Score", score_to_save: "Score to save:",
                 modal_save_desc: "Save your record to the event Leaderboard", btn_cancel: "Cancel", btn_save: "Save Name", btn_confirm: "Confirm Delete",
                 board_title: "Event Leaderboard", board_empty: "No records yet. Be the first to play!", btn_close: "Close Window", btn_continue: "Continue",
-                msg_no_score: "You don't have any score yet. Play some mini-games first!",
+                notice_title: "Notice!", msg_no_score: "You don't have any score yet. Play some mini-games first!",
                 msg_timeout: "Time's up!", msg_perfect: "Perfect!", msg_out_lives: "Out of lives!",
                 win: "You Win!", game_over: "Game Over",
                 match_win_add: " Points added to your total score!", match_lose_add: " Try again next time. Score reset to 0.",
@@ -533,7 +533,6 @@
                 renderMatchSymbols(); renderMatchMeanings();
             }
             
-            // อัปเดตข้อความใน Modal รหัสผ่านถ้าเปิดค้างไว้
             if (entryToDeleteIndex !== null) {
                 const entry = leaderboard[entryToDeleteIndex];
                 if (entry) document.getElementById('password-msg').innerText = `${i18n[currentLang].pwd_desc} "${entry.name}"`;
@@ -581,7 +580,19 @@
 
         // --- ระบบ Leaderboard & บันทึกคะแนนรวม ---
         function promptSaveScore() {
-            if (score <= 0) { alert(i18n[currentLang].msg_no_score); return; }
+            if (score <= 0) {
+                // 🛠️ ไม่ใช้ alert() แล้ว เปลี่ยนเป็น Custom Modal แจ้งเตือนสวยๆ
+                playSynthSound('wrong');
+                document.getElementById('feedback-icon').innerText = "⚠️";
+                document.getElementById('feedback-title').innerText = i18n[currentLang].notice_title;
+                document.getElementById('feedback-message').innerText = i18n[currentLang].msg_no_score;
+                document.getElementById('feedback-action-btn').innerText = i18n[currentLang].btn_continue;
+                document.getElementById('feedback-action-btn').onclick = () => {
+                    document.getElementById('feedback-modal').classList.add('hidden');
+                };
+                document.getElementById('feedback-modal').classList.remove('hidden');
+                return;
+            }
             checkAndSaveScore(score);
         }
 
@@ -604,7 +615,7 @@
         
         function closeLeaderboard() { playSynthSound('sweep'); document.getElementById('leaderboard-modal').classList.add('hidden'); }
         
-        // --- 🛠️ ระบบจัดการรหัสผ่าน Staff แบบใหม่ (ไม่โชว์รหัสผ่าน) ---
+        // --- 🛠️ ระบบจัดการรหัสผ่าน Staff (ไม่ใช้ prompt) ---
         let entryToDeleteIndex = null;
 
         function deleteEntry(index) {
@@ -612,7 +623,7 @@
             entryToDeleteIndex = index;
             const entry = leaderboard[index];
             document.getElementById('password-msg').innerText = `${i18n[currentLang].pwd_desc} "${entry.name}"`;
-            document.getElementById('staff-password-input').value = ""; // เคลียร์รหัสเดิม
+            document.getElementById('staff-password-input').value = ""; 
             document.getElementById('password-modal').classList.remove('hidden');
         }
 
@@ -630,6 +641,7 @@
                 if(entry) database.ref('leaderboard/' + entry.id).remove();
                 closePasswordModal();
             } else {
+                // ถ้ารหัสผิด ให้กล่องใส่รหัสสั่นเตือน ไม่มี popup browser ใดๆ กวนใจ
                 playSynthSound('wrong');
                 const inputEl = document.getElementById('staff-password-input');
                 inputEl.classList.add('animate-shake', 'border-red-500');
@@ -737,7 +749,6 @@
             if (success) { playSynthSound('victory'); if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } 
             else { playSynthSound('wrong'); }
 
-            document.getElementById('feedback-modal').classList.remove('hidden');
             document.getElementById('feedback-icon').innerText = success ? "🎉" : "💀";
             document.getElementById('feedback-title').innerText = success ? i18n[currentLang].win : i18n[currentLang].game_over;
             document.getElementById('feedback-message').innerText = i18n[currentLang][msgKey] + (success ? i18n[currentLang].match_win_add : i18n[currentLang].match_lose_add);
@@ -747,6 +758,7 @@
                 document.getElementById('feedback-modal').classList.add('hidden');
                 if(!success || matchCorrectCount >= 5) changeScreen('menu'); else startMatchGame();
             };
+            document.getElementById('feedback-modal').classList.remove('hidden');
         }
 
         // --- ระบบเกมเรียงลอจิก (Puzzle) ---
@@ -784,7 +796,6 @@
         function checkPuzzleAnswer() {
             if (isCheckingPuzzle) return; isCheckingPuzzle = true;
             let error = puzzleDeck.some((s, i) => s.order !== i+1);
-            document.getElementById('feedback-modal').classList.remove('hidden');
             
             document.getElementById('feedback-title').innerText = !error ? i18n[currentLang].puz_win_title : i18n[currentLang].puz_wrong_title;
             document.getElementById('feedback-message').innerText = !error ? i18n[currentLang].puz_win_desc : i18n[currentLang].puz_wrong_desc;
@@ -803,6 +814,7 @@
                     document.getElementById('feedback-modal').classList.add('hidden'); isCheckingPuzzle = false;
                 };
             }
+            document.getElementById('feedback-modal').classList.remove('hidden');
         }
     </script>
 </body>
