@@ -88,7 +88,7 @@
                     <div class="mt-2">
                         <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">⚡</div>
                         <h3 class="text-xl font-bold mt-4 text-slate-100 group-hover:text-cyan-400">มินิเกมประลองความไว</h3>
-                        <p class="text-slate-400 text-xs mt-2">ร่วมสนุกกับเกมจับคู่ความหมายผังงาน แข่งกับเวลาและบันทึกชื่อลงลีดเดอร์บอร์ดของงาน!</p>
+                        <p class="text-slate-400 text-xs mt-2">ร่วมสนุกกับเกมจับคู่ความหมายผังงาน แข่งกับเวลาและสะสมคะแนน!</p>
                     </div>
                 </div>
 
@@ -117,7 +117,7 @@
                         <span class="text-indigo-200">✨ คะแนนสะสมของคุณ: </span>
                         <strong id="current-accumulated-score" class="text-indigo-400 text-base font-bold">0 คะแนน</strong>
                     </div>
-                    <button onclick="promptSaveScore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors shadow-lg shadow-indigo-500/20">💾 บันทึกชื่อ</button>
+                    <button onclick="promptSaveScore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors shadow-lg shadow-indigo-500/20">💾 บันทึกชื่อลงบอร์ด</button>
                 </div>
             </div>
         </section>
@@ -377,7 +377,8 @@
 
         // --- 3. ระบบ Cache และการควบคุมเกมหลัก ---
         let score = 0; let lives = 3; let pendingScoreToSave = 0;
-        const CACHE_EXPIRY_MS = 4 * 60 * 60 * 1000;
+        // 🛠️ เก็บข้อมูลในเครื่องผู้เล่นไว้ 5 ชั่วโมง
+        const CACHE_EXPIRY_MS = 5 * 60 * 60 * 1000;
 
         function saveSessionProgress() {
             localStorage.setItem('flowmatch_session', JSON.stringify({score, lives, timestamp: Date.now()}));
@@ -387,7 +388,9 @@
                 const data = JSON.parse(localStorage.getItem('flowmatch_session'));
                 if (data && (Date.now() - data.timestamp < CACHE_EXPIRY_MS)) {
                     score = data.score || 0; lives = data.lives || 3;
-                } else localStorage.removeItem('flowmatch_session');
+                } else {
+                    localStorage.removeItem('flowmatch_session');
+                }
             } catch(e) {}
         }
         function clearSessionProgress() {
@@ -421,7 +424,7 @@
         function changeScreen(screenId) {
             playSynthSound('select');
             
-            // ถ้าไม่ได้อยู่หน้า match ให้หยุดเวลาเสมอ ป้องกันเวลาเดินทะลุมิติ
+            // 🛠️ ถ้าไม่ได้อยู่หน้า match ให้หยุดเวลาเสมอ ป้องกันเวลาเดินทะลุมิติ
             if (screenId !== 'match') {
                 clearInterval(matchTimer);
             }
@@ -529,14 +532,17 @@
         function skipSaveName() {
             playSynthSound('sweep');
             document.getElementById('name-input-modal').classList.add('hidden');
+            clearSessionProgress();
         }
 
-        // --- 5. ระบบเกมจับคู่ ---
-        let matchTimer, matchTimeRemaining = 45, matchCorrectCount = 0, currentMatchDeck = [], matchSelected = null;
+        // --- 5. ระบบเกมจับคู่ (แก้ไขให้กดฝั่งไหนก่อนก็ได้) ---
+        let matchTimer, matchTimeRemaining = 45, matchCorrectCount = 0, currentMatchDeck = [];
+        let matchSelectedSym = null, matchSelectedMean = null;
         
         function startMatchGame() {
             if (lives <= 0) { score = 0; lives = 3; }
-            matchCorrectCount = 0; matchTimeRemaining = 45; matchSelected = null;
+            matchCorrectCount = 0; matchTimeRemaining = 45; 
+            matchSelectedSym = null; matchSelectedMean = null;
             updateHeaderStatus();
             currentMatchDeck = [...SYMBOLS].sort(() => 0.5 - Math.random());
             renderMatchSymbols(); 
@@ -555,7 +561,7 @@
             const container = document.getElementById('match-symbols-container'); 
             container.innerHTML = '';
             currentMatchDeck.forEach(sym => {
-                // เอาชื่อออก เหลือแค่สัญลักษณ์
+                // 🛠️ เอาชื่อภาษาอังกฤษออก เหลือแค่รูปสัญลักษณ์
                 container.innerHTML += `<button id="sym-${sym.id}" onclick="selectSym('${sym.id}')" class="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center transition-all hover:bg-slate-800">${sym.svg}</button>`;
             });
         }
@@ -570,25 +576,29 @@
 
         function selectSym(id) { 
             playSynthSound('select');
-            matchSelected = id; 
-            document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500', 'bg-indigo-900/30'));
-            document.getElementById(`sym-${id}`).classList.add('border-indigo-500', 'bg-indigo-900/30');
+            if (matchSelectedMean) {
+                checkMatch(id, matchSelectedMean);
+            } else {
+                matchSelectedSym = id; 
+                updateMatchUI();
+            }
         }
         
         function selectMean(id) {
-            // ถ้ายืนยันคำตอบทั้งๆ ที่ยังไม่เลือกรูป ให้ปุ่มสั่นเตือน
-            if (!matchSelected) {
-                playSynthSound('move');
-                const btn = document.getElementById(`mean-${id}`);
-                btn.classList.add('animate-shake', 'border-yellow-500');
-                setTimeout(() => btn.classList.remove('animate-shake', 'border-yellow-500'), 400);
-                return;
+            playSynthSound('select');
+            if (matchSelectedSym) {
+                checkMatch(matchSelectedSym, id);
+            } else {
+                matchSelectedMean = id;
+                updateMatchUI();
             }
+        }
 
-            if (matchSelected === id) {
+        function checkMatch(symId, meanId) {
+            if (symId === meanId) {
                 playSynthSound('correct');
-                document.getElementById(`sym-${id}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
-                document.getElementById(`mean-${id}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
+                document.getElementById(`sym-${symId}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
+                document.getElementById(`mean-${meanId}`).classList.add('opacity-30', 'pointer-events-none', 'bg-green-900/20', 'border-green-500');
                 score += 100; matchCorrectCount++; updateHeaderStatus();
                 document.getElementById('match-combo').innerText = `คู่ที่เจอ: ${matchCorrectCount}/5`;
                 
@@ -598,13 +608,27 @@
                 lives--; updateHeaderStatus();
                 if(lives <= 0) { clearInterval(matchTimer); showMatchEnd(false, 'พลังชีวิตหมดแล้ว!'); }
             }
-            matchSelected = null;
+            matchSelectedSym = null;
+            matchSelectedMean = null;
+            updateMatchUI();
+        }
+
+        function updateMatchUI() {
+            document.querySelectorAll("[id^='sym-']").forEach(e => e.classList.remove('border-indigo-500', 'bg-indigo-900/30'));
+            document.querySelectorAll("[id^='mean-']").forEach(e => e.classList.remove('border-indigo-500', 'bg-indigo-900/30'));
+            
+            if (matchSelectedSym) {
+                document.getElementById(`sym-${matchSelectedSym}`).classList.add('border-indigo-500', 'bg-indigo-900/30');
+            }
+            if (matchSelectedMean) {
+                document.getElementById(`mean-${matchSelectedMean}`).classList.add('border-indigo-500', 'bg-indigo-900/30');
+            }
         }
 
         function showMatchEnd(success, msg) {
             if (success) {
                 playSynthSound('victory');
-                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); // ยิงพลุ!
+                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); // 🛠️ ยิงพลุ!
             } else {
                 playSynthSound('wrong');
             }
@@ -616,9 +640,8 @@
             
             document.getElementById('feedback-action-btn').onclick = () => {
                 document.getElementById('feedback-modal').classList.add('hidden');
-                // กลับสู่หน้าเมนูหลัก
                 if(!success || matchCorrectCount >= 5) {
-                    changeScreen('menu'); 
+                    changeScreen('menu'); // กลับสู่หน้าเมนูหลัก
                 } else {
                     startMatchGame();
                 }
@@ -667,7 +690,7 @@
             
             if(!error) {
                 playSynthSound('victory');
-                if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); // ยิงพลุ!
+                if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); // 🛠️ ยิงพลุ!
                 score += 300; 
                 updateHeaderStatus();
                 document.getElementById('feedback-icon').innerText = "🧠";
