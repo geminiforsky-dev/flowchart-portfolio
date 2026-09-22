@@ -23,14 +23,20 @@
 <body class="text-slate-100 min-h-screen flex flex-col cyber-grid relative overflow-x-hidden">
 
     <header class="border-b border-rose-900/50 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
-        <div class="max-w-4xl mx-auto flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
-                <span class="text-xl">🛠️</span>
+        <div class="max-w-4xl mx-auto flex justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
+                    <span class="text-xl">🛠️</span>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-wider text-rose-400">STAFF DASHBOARD</h1>
+                    <p class="text-[10px] text-slate-400 tracking-wider">ระบบจัดการ Portfolio Showcase</p>
+                </div>
             </div>
-            <div>
-                <h1 class="font-bold text-xl tracking-wider text-rose-400">STAFF DASHBOARD</h1>
-                <p class="text-[10px] text-slate-400 tracking-wider">ระบบจัดการ Portfolio Showcase</p>
-            </div>
+            <!-- ปุ่ม Log out แบบ Manual -->
+            <button id="logout-btn" onclick="logout()" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 transition-colors">
+                ออกจากระบบ
+            </button>
         </div>
     </header>
 
@@ -53,10 +59,14 @@
             <div class="flex justify-between items-end">
                 <div>
                     <h2 class="text-2xl font-bold text-white">ตารางคะแนนกิจกรรม</h2>
-                    <p class="text-slate-400 text-sm">คุณสามารถลบข้อมูลที่ไม่ต้องการได้ที่นี่</p>
+                    <p class="text-slate-400 text-sm">ระบบจะล็อคเอาท์อัตโนมัติหากไม่มีการใช้งาน 3 นาที</p>
                 </div>
-                <div class="text-xs text-rose-400 bg-rose-950/50 px-3 py-1.5 rounded-lg border border-rose-900">
-                    🟢 ดึงข้อมูลแบบ Real-time
+                <div class="text-xs text-rose-400 bg-rose-950/50 px-3 py-1.5 rounded-lg border border-rose-900 flex items-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                    Real-time
                 </div>
             </div>
 
@@ -69,13 +79,19 @@
 
     </main>
 
-    <!-- Custom Modal ยืนยันการลบ -->
+    <!-- 🛠️ Custom Modal ยืนยันการลบ (ถามรหัสซ้ำ) -->
     <div id="confirm-delete-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-rose-900/50 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-float">
             <div class="text-5xl">⚠️</div>
             <div class="space-y-2">
                 <h3 class="text-2xl font-bold text-white">ยืนยันการลบข้อมูล?</h3>
                 <p id="delete-target-name" class="text-slate-400 text-sm break-words">คุณต้องการลบ "..." ใช่หรือไม่?</p>
+            </div>
+            <!-- ช่องให้ใส่รหัสผ่านอีกครั้งก่อนลบ -->
+            <div class="space-y-2 pt-2 border-t border-slate-800">
+                <p class="text-xs text-rose-400">กรุณาใส่รหัสผ่านสตาฟฟ์อีกครั้งเพื่อยืนยัน</p>
+                <input type="password" id="delete-password-input" placeholder="Password..." 
+                       class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-center focus:outline-none focus:border-rose-500 transition-colors">
             </div>
             <div class="flex gap-3">
                 <button onclick="closeDeleteModal()" class="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all text-sm font-medium">ยกเลิก</button>
@@ -93,8 +109,20 @@
         </div>
     </div>
 
+    <!-- Custom Modal แจ้งเตือนหมดเวลา -->
+    <div id="timeout-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[80] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-rose-900/50 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-float">
+            <div class="text-5xl">⏱️</div>
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold text-white">หมดเวลาการใช้งาน</h3>
+                <p class="text-slate-400 text-sm">ระบบล็อคเอาท์อัตโนมัติเนื่องจากไม่มีการเคลื่อนไหวเกิน 3 นาที เพื่อความปลอดภัย</p>
+            </div>
+            <button onclick="document.getElementById('timeout-modal').classList.add('hidden')" class="w-full py-3 bg-rose-600 hover:bg-rose-500 rounded-xl text-white font-bold transition-all">ตกลง</button>
+        </div>
+    </div>
+
     <script>
-        // การตั้งค่า Firebase (ชุดเดียวกับฝั่งคนเล่น)
+        // การตั้งค่า Firebase 
         const firebaseConfig = {
             apiKey: "AIzaSyDzBz65IEWjI1FcsMCshIHKkb2bESXECI0",
             authDomain: "flowchart-portfolio.firebaseapp.com",
@@ -109,19 +137,65 @@
         const database = firebase.database();
         let leaderboard = [];
 
-        // ฟังก์ชันล็อคอิน
+        // --- 🛠️ 1. ระบบ Auto-Logout (3 นาที) ---
+        let inactivityTimer;
+        const TIMEOUT_DURATION = 3 * 60 * 1000; // 3 นาที (หน่วยเป็นมิลลิวินาที)
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            // เริ่มนับเวลาใหม่เฉพาะตอนที่อยู่ที่หน้า Dashboard (ล็อคอินแล้ว)
+            if (!document.getElementById('dashboard-section').classList.contains('hidden')) {
+                inactivityTimer = setTimeout(forceLogoutDueToTimeout, TIMEOUT_DURATION);
+            }
+        }
+
+        // ดักฟังการขยับเมาส์, กดคีย์บอร์ด, หรือแตะหน้าจอ เพื่อรีเซ็ตเวลา
+        ['click', 'touchstart', 'mousemove', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimer);
+        });
+
+        function forceLogoutDueToTimeout() {
+            logout();
+            document.getElementById('timeout-modal').classList.remove('hidden'); // เด้งเตือนว่าโดนเตะเพราะหมดเวลา
+        }
+
+        function logout() {
+            // ซ่อนหน้า Dashboard เปิดหน้า Login
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('logout-btn').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            
+            // เคลียร์รหัสผ่านทุกช่องเพื่อความปลอดภัย
+            document.getElementById('login-password').value = ''; 
+            document.getElementById('delete-password-input').value = '';
+            
+            // ปิด Modal ที่อาจจะเปิดค้างอยู่
+            closeDeleteModal();
+            clearTimeout(inactivityTimer);
+        }
+
+        // --- 2. ระบบล็อคอิน ---
         function checkLogin() {
             const pwd = document.getElementById('login-password').value;
             if (pwd === "ITS") {
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
-                fetchLeaderboard(); // โหลดข้อมูลมาโชว์
+                document.getElementById('logout-btn').classList.remove('hidden');
+                
+                // ล็อคอินผ่านปุ๊บ เริ่มจับเวลา 3 นาทีทันที
+                resetInactivityTimer();
+                fetchLeaderboard(); 
             } else {
                 document.getElementById('error-modal').classList.remove('hidden');
             }
         }
 
-        // โหลดข้อมูลแบบ Real-time
+        // ทำให้กด Enter ในช่องรหัสผ่านแล้วล็อคอินได้เลย
+        document.getElementById('login-password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkLogin();
+        });
+
+        // --- 3. ดึงข้อมูลตารางคะแนน ---
         function fetchLeaderboard() {
             database.ref('leaderboard').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -140,7 +214,7 @@
             });
         }
 
-        // วาดตารางฝั่งสตาฟฟ์ (มีปุ่มลบ)
+        // --- 4. วาดตาราง ---
         function renderStaffLeaderboard() {
             const list = document.getElementById('staff-leaderboard-list');
             list.innerHTML = '';
@@ -164,13 +238,14 @@
             });
         }
 
-        // ระบบยืนยันการลบแบบ Custom Modal (ไม่มี popup browser)
+        // --- 🛠️ 5. ระบบถามรหัสผ่านก่อนลบ ---
         let entryToDeleteId = null;
 
         function openDeleteModal(index) {
             const entry = leaderboard[index];
             entryToDeleteId = entry.id;
             document.getElementById('delete-target-name').innerText = `ลบผู้เล่น: "${entry.name}" ใช่หรือไม่?`;
+            document.getElementById('delete-password-input').value = ""; // เคลียร์ช่องรหัสเดิมทิ้ง
             document.getElementById('confirm-delete-modal').classList.remove('hidden');
         }
 
@@ -180,10 +255,19 @@
         }
 
         function executeDelete() {
-            if (entryToDeleteId) {
-                database.ref('leaderboard/' + entryToDeleteId).remove();
+            const deletePwd = document.getElementById('delete-password-input');
+            
+            // เช็ครหัสผ่านซ้ำอีกรอบ
+            if (deletePwd.value === "ITS") {
+                if (entryToDeleteId) {
+                    database.ref('leaderboard/' + entryToDeleteId).remove();
+                }
+                closeDeleteModal();
+            } else {
+                // ถ้ารหัสผิด กล่องจะสั่นเตือน ขอบแดง
+                deletePwd.classList.add('animate-shake', 'border-red-500');
+                setTimeout(() => deletePwd.classList.remove('animate-shake', 'border-red-500'), 400);
             }
-            closeDeleteModal();
         }
     </script>
 </body>
