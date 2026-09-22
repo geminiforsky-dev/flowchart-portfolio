@@ -208,6 +208,25 @@
         </div>
     </div>
 
+    <!-- Staff Password Modal (แก้ไขใหม่ ปิดบังรหัสผ่านตอนพิมพ์) -->
+    <div id="password-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[70] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-float">
+            <div class="text-5xl">🔒</div>
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold text-white" data-i18n="pwd_title">สำหรับสตาฟฟ์</h3>
+                <p id="password-msg" class="text-slate-400 text-sm break-words">ใส่รหัสผ่านเพื่อลบ</p>
+            </div>
+            <div class="space-y-3">
+                <input type="password" id="staff-password-input" placeholder="Password..." 
+                       class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-center focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closePasswordModal()" class="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all text-sm font-medium" data-i18n="btn_cancel">ยกเลิก</button>
+                <button onclick="confirmDeleteEntry()" class="w-2/3 py-3 bg-red-600 hover:bg-red-500 font-bold rounded-xl text-white transition-all shadow-lg shadow-red-500/20" data-i18n="btn_confirm">ยืนยันลบ</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Leaderboard Modal -->
     <div id="leaderboard-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full relative space-y-6 shadow-2xl">
@@ -256,7 +275,7 @@
                 footer: "&copy; 2026 Portfolio Showcase โดย สกาย, ธาม, ไนซ์ และ อินดี้ พัฒนาขึ้นพิเศษสำหรับจัดแสดงผลงานและกิจกรรม 💻✨",
                 score: "คะแนน", lives: "พลังชีวิต", pts: "คะแนน", placeholder: "พิมพ์ชื่อของคุณที่นี่...",
                 modal_save_title: "บันทึกคะแนนรวม", score_to_save: "คะแนนที่จะบันทึก:",
-                modal_save_desc: "บันทึกสถิติลงตารางคะแนนของงาน", btn_cancel: "ยกเลิก", btn_save: "บันทึกชื่อ",
+                modal_save_desc: "บันทึกสถิติลงตารางคะแนนของงาน", btn_cancel: "ยกเลิก", btn_save: "บันทึกชื่อ", btn_confirm: "ยืนยันลบ",
                 board_title: "ตารางคะแนนกิจกรรม", board_empty: "ยังไม่มีสถิติ มาร่วมประเดิมคนแรกกันเถอะ!", btn_close: "ปิดหน้าต่าง", btn_continue: "ดำเนินการต่อ",
                 msg_no_score: "คุณยังไม่มีคะแนนเลย ลองเข้าไปเล่นมินิเกมเพื่อเก็บคะแนนก่อนนะ!",
                 msg_timeout: "หมดเวลา!", msg_perfect: "สมบูรณ์แบบ!", msg_out_lives: "พลังชีวิตหมดแล้ว!",
@@ -265,7 +284,8 @@
                 puz_win_title: "ลอจิกถูกต้อง!", puz_win_desc: "รับไปเลย 300 แต้ม! กลับสู่เมนูเพื่อเล่นต่อหรือกดบันทึกคะแนนสะสม",
                 puz_wrong_title: "ตรรกะผิดพลาด!", puz_wrong_desc: "ลำดับการทำงานยังไม่ถูกต้อง ลองเรียงใหม่ดูอีกครั้งนะ",
                 iab_title: "คำแนะนำก่อนเล่น!", iab_w1: "ดูเหมือนคุณจะเปิดเว็บผ่านแอป", iab_w2: "ระบบเสียงและการเซฟคะแนนอาจทำงานไม่สมบูรณ์", iab_w3: "แนะนำให้กดปุ่ม ⋯ หรือ ⋮ (มุมขวาบน)<br>แล้วเลือก \"เปิดในเบราว์เซอร์\"<br>(เช่น Chrome หรือ Safari)", iab_btn: "เข้าใจแล้ว เล่นในนี้แหละ",
-                time_left: "เวลาเหลือ", sec: "วินาที", pairs: "คู่ที่เจอ"
+                time_left: "เวลาเหลือ", sec: "วินาที", pairs: "คู่ที่เจอ",
+                pwd_title: "สำหรับสตาฟฟ์", pwd_desc: "ใส่รหัสผ่านเพื่อลบ:"
             },
             en: {
                 header_title: "PORTFOLIO SHOWCASE", header_desc: "Interactive Mini-Game By Sky, Time, Nice & Indy",
@@ -281,7 +301,7 @@
                 footer: "&copy; 2026 Portfolio Showcase by Sky, Time, Nice & Indy. Specially developed for this event. 💻✨",
                 score: "Score", lives: "Lives", pts: "pts", placeholder: "Enter your name here...",
                 modal_save_title: "Save Total Score", score_to_save: "Score to save:",
-                modal_save_desc: "Save your record to the event Leaderboard", btn_cancel: "Cancel", btn_save: "Save Name",
+                modal_save_desc: "Save your record to the event Leaderboard", btn_cancel: "Cancel", btn_save: "Save Name", btn_confirm: "Confirm Delete",
                 board_title: "Event Leaderboard", board_empty: "No records yet. Be the first to play!", btn_close: "Close Window", btn_continue: "Continue",
                 msg_no_score: "You don't have any score yet. Play some mini-games first!",
                 msg_timeout: "Time's up!", msg_perfect: "Perfect!", msg_out_lives: "Out of lives!",
@@ -290,7 +310,8 @@
                 puz_win_title: "Correct Logic!", puz_win_desc: "You got 300 points! Go back to menu to play more or save score.",
                 puz_wrong_title: "Logic Error!", puz_wrong_desc: "The sequence is incorrect. Please try rearranging it.",
                 iab_title: "Before you play!", iab_w1: "Looks like you opened this inside", iab_w2: "Sound and saving systems might not work properly.", iab_w3: "We recommend tapping ⋯ or ⋮ (top right)<br>and selecting \"Open in browser\"<br>(like Chrome or Safari)", iab_btn: "Got it, continue here",
-                time_left: "Time Left", sec: "sec", pairs: "Pairs found"
+                time_left: "Time Left", sec: "sec", pairs: "Pairs found",
+                pwd_title: "Staff Only", pwd_desc: "Enter password to delete:"
             }
         };
 
@@ -511,6 +532,12 @@
                 document.getElementById('match-combo').innerText = `${i18n[currentLang].pairs}: ${matchCorrectCount}/5`;
                 renderMatchSymbols(); renderMatchMeanings();
             }
+            
+            // อัปเดตข้อความใน Modal รหัสผ่านถ้าเปิดค้างไว้
+            if (entryToDeleteIndex !== null) {
+                const entry = leaderboard[entryToDeleteIndex];
+                if (entry) document.getElementById('password-msg').innerText = `${i18n[currentLang].pwd_desc} "${entry.name}"`;
+            }
         }
 
         function updateHeaderStatus() {
@@ -577,14 +604,36 @@
         
         function closeLeaderboard() { playSynthSound('sweep'); document.getElementById('leaderboard-modal').classList.add('hidden'); }
         
+        // --- 🛠️ ระบบจัดการรหัสผ่าน Staff แบบใหม่ (ไม่โชว์รหัสผ่าน) ---
+        let entryToDeleteIndex = null;
+
         function deleteEntry(index) {
             playSynthSound('select');
+            entryToDeleteIndex = index;
             const entry = leaderboard[index];
-            const pwd = prompt(`[Staff Only] Delete "${entry.name}":`);
+            document.getElementById('password-msg').innerText = `${i18n[currentLang].pwd_desc} "${entry.name}"`;
+            document.getElementById('staff-password-input').value = ""; // เคลียร์รหัสเดิม
+            document.getElementById('password-modal').classList.remove('hidden');
+        }
+
+        function closePasswordModal() {
+            playSynthSound('sweep');
+            document.getElementById('password-modal').classList.add('hidden');
+            entryToDeleteIndex = null;
+        }
+
+        function confirmDeleteEntry() {
+            const pwd = document.getElementById('staff-password-input').value;
             if (pwd === "ITS") {
-                playSynthSound('trash'); database.ref('leaderboard/' + entry.id).remove();
-            } else if (pwd !== null) {
-                playSynthSound('wrong'); alert("❌ Wrong Password");
+                playSynthSound('trash');
+                const entry = leaderboard[entryToDeleteIndex];
+                if(entry) database.ref('leaderboard/' + entry.id).remove();
+                closePasswordModal();
+            } else {
+                playSynthSound('wrong');
+                const inputEl = document.getElementById('staff-password-input');
+                inputEl.classList.add('animate-shake', 'border-red-500');
+                setTimeout(() => inputEl.classList.remove('animate-shake', 'border-red-500'), 400);
             }
         }
 
